@@ -1,0 +1,28 @@
+name: Deploy to Pi 5
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Clean workspace
+        run: sudo rm -rf mosquitto zigbee2mqtt
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Tests and Maven Build
+        run: mvn clean package
+
+      - name: Docker build and deploy
+        env:
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_JDBC_URL: ${{ vars.DB_JDBC_URL }}
+          DB_REACTIVE_URL: ${{ vars.DB_REACTIVE_URL }}
+        run: |
+          docker build -t smart-home-app:latest .
+          docker compose up -d

@@ -1,0 +1,28 @@
+"%test":
+  quarkus:
+    http:
+      test-port: 0
+    management:
+      test-port: 0
+
+quarkus:
+  http:
+    port: 8080
+  log:
+    level: INFO
+    console:
+      format: "%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n"
+
+  datasource:
+    db-kind: postgresql
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    jdbc:
+      url: ${DB_JDBC_URL}
+    reactive:
+      url: ${DB_REACTIVE_URL}
+
+  flyway:
+    migrate-at-start: true
+    locations: db/migration
+    baseline-on-migrate: true
