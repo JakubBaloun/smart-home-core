@@ -17,8 +17,12 @@ IoT smart home platform running on Raspberry Pi 5, built with Quarkus (reactive 
 ## Project Structure
 
 ```
-src/main/java/org/acme/       # Application code
-  model/                       # Entities (Panache)
+src/main/java/org/acme/       # Application code (feature-based packages)
+  device/                      # Device management (entities, REST, MQTT listener)
+  telemetry/                   # Time-series data pipeline
+  automation/                  # Rules engine
+  mqtt/                        # Shared MQTT integration (SmallRye consumers/producers)
+  config/                      # App-wide configuration beans
 src/main/resources/
   application.yaml             # Config (YAML, not .properties)
   db/migration/                # Flyway migrations (V{major}.{minor}.{patch}__Description.sql)
@@ -37,7 +41,7 @@ Dockerfile                     # Production image (fast-jar layout)
 ./mvnw quarkus:dev                      # Dev mode with hot reload
 
 # Single test class
-./mvnw test -Dtest=GreetingResourceTest
+./mvnw test -Dtest=HealthTest
 
 # Docker
 docker build -t smart-home-app:latest .
@@ -54,7 +58,9 @@ docker compose logs -f smart-home-app   # App logs
 - **Entities:** Panache entities in `model/` package, extend `PanacheEntity`
 - **JSON:** Jackson (via `quarkus-rest-jackson`)
 - **Reactive:** Use Mutiny types (`Uni<T>`, `Multi<T>`) for reactive endpoints
-- **No Lombok, no MapStruct** -- keep it simple with Panache reducing boilerplate
+- **Lombok:** Use for boilerplate reduction (`@Slf4j`, `@Data`, `@Builder`, etc.)
+- **MapStruct:** Use for DTO/entity mapping (`@Mapper(componentModel = "jakarta-cdi")`)
+- **Logging:** Prefer Lombok `@Slf4j` on classes, or `io.quarkus.logging.Log` for static access
 
 ### Naming
 - Classes: `PascalCase` (e.g., `DeviceResource`, `SensorReading`)
