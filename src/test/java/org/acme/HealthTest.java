@@ -8,14 +8,13 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
 @QuarkusTest
-class GreetingResourceTest {
+class HealthTest {
     @Test
-    void testHelloEndpoint() {
+    void testHealthEndpoint() {
         given()
-          .when().get("/hello")
+          .when().get("/q/health")
           .then()
-             .statusCode(200)
-             .body(containsString("Hello from Quarkus REST"));
+             .statusCode(200);
     }
 
 }

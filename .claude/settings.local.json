@@ -19,7 +19,9 @@
       "Bash(git show*)",
       "Bash(gh pr *)",
       "Bash(gh issue *)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(echo:*)",
+      "Bash(./mvnw clean package:*)"
     ],
     "deny": []
   }
