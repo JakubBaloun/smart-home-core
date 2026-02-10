@@ -21,7 +21,10 @@
       "Bash(gh issue *)",
       "WebSearch",
       "Bash(echo:*)",
-      "Bash(./mvnw clean package:*)"
+      "Bash(./mvnw clean package:*)",
+      "Bash(git -C /Users/jakub/byt/smart-home-core diff --cached)",
+      "Bash(git -C /Users/jakub/byt/smart-home-core diff)",
+      "Bash(git -C /Users/jakub/byt/smart-home-core status --short)"
     ],
     "deny": []
   }

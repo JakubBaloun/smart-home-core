@@ -55,7 +55,8 @@ docker compose logs -f smart-home-app   # App logs
 ### Code Style
 - **Package:** `org.acme` (base package)
 - **REST endpoints:** `*Resource` classes with Jakarta REST annotations (`@Path`, `@GET`, `@POST`, etc.)
-- **Entities:** Panache entities in `model/` package, extend `PanacheEntity`
+- **Entities:** Extend `PanacheEntityBase` with explicit `Long id`, live in feature package
+- **Repositories:** Custom `*Repository` classes (`@ApplicationScoped`) using Hibernate Reactive `Session` directly
 - **JSON:** Jackson (via `quarkus-rest-jackson`)
 - **Reactive:** Use Mutiny types (`Uni<T>`, `Multi<T>`) for reactive endpoints
 - **Lombok:** Use for boilerplate reduction (`@Slf4j`, `@Data`, `@Builder`, etc.)
@@ -95,6 +96,6 @@ docker compose logs -f smart-home-app   # App logs
 ## Important Notes
 
 - This is a reactive stack: prefer `Uni<T>`/`Multi<T>` return types over blocking calls
-- Panache reactive entities use `PanacheEntity` -- don't create separate repository classes unless needed
+- Use custom repository classes with Hibernate Reactive `Session` for data access (not Panache active-record methods)
 - The app runs alongside MQTT broker and Zigbee2MQTT in Docker Compose -- MQTT integration is infrastructure-ready but not yet wired into the application code
 - Quarkus dev mode (`./mvnw quarkus:dev`) requires a running PostgreSQL -- use `docker compose up -d smart-home-db` to start just the DB
