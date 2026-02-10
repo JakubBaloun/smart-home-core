@@ -1,10 +1,4 @@
-"%test":
-  quarkus:
-    http:
-      test-port: 0
-    management:
-      test-port: 0
-
+# --- SPOLEČNÁ KONFIGURACE ---
 quarkus:
   http:
     port: 8080
@@ -13,16 +7,34 @@ quarkus:
     console:
       format: "%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n"
 
+  # Databáze (Postgres)
   datasource:
     db-kind: postgresql
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
-    jdbc:
-      url: ${DB_JDBC_URL}
-    reactive:
-      url: ${DB_REACTIVE_URL}
 
+  # Flyway migrace
   flyway:
-    migrate-at-start: true
+    migrate-at-start: ${QUARKUS_FLYWAY_MIGRATE_AT_START:true}
     locations: db/migration
     baseline-on-migrate: true
+
+# InfluxDB konfigurace
+influxdb:
+  url: ${INFLUXDB_URL:http://localhost:8086}
+  token: ${INFLUXDB_TOKEN:my-super-secret-token}
+  org: ${INFLUXDB_ORG:smart-home}
+  bucket: ${INFLUXDB_BUCKET:telemetry}
+
+# Reactive Messaging (MQTT)
+mp:
+  messaging:
+    connector:
+      smallrye-mqtt:
+        host: ${MQTT_HOST:localhost}
+        port: ${MQTT_PORT:1883}
+        client-id: smart-home-core
+        auto-generated-client-id: false
+    incoming:
+      zigbee2mqtt-bridge:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/bridge/state
+

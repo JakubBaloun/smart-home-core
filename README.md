@@ -53,6 +53,18 @@ You can then execute your native executable with: `./target/smart-home-core-1.0.
 
 If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
 
+## MQTT Testing
+
+Requires `mosquitto` CLI tools (`brew install mosquitto` on macOS).
+
+```bash
+# Publish a bridge state message
+mosquitto_pub -h raspberry.local -t zigbee2mqtt/bridge/state -m '{"state":"online"}'
+
+# Subscribe to all Zigbee2MQTT topics (useful for debugging)
+mosquitto_sub -h raspberry.local -t 'zigbee2mqtt/#' -v
+```
+
 ## Related Guides
 
 - REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
