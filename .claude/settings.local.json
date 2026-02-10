@@ -24,7 +24,9 @@
       "Bash(./mvnw clean package:*)",
       "Bash(git -C /Users/jakub/byt/smart-home-core diff --cached)",
       "Bash(git -C /Users/jakub/byt/smart-home-core diff)",
-      "Bash(git -C /Users/jakub/byt/smart-home-core status --short)"
+      "Bash(git -C /Users/jakub/byt/smart-home-core status --short)",
+      "Bash(git -C /Users/jakub/byt/smart-home-core diff main...HEAD --stat)",
+      "Bash(git -C /Users/jakub/byt/smart-home-core diff main...HEAD)"
     ],
     "deny": []
   }

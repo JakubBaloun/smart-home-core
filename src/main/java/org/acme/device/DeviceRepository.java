@@ -21,6 +21,10 @@ public class DeviceRepository {
             FROM Device WHERE ieeeAddress = :ieeeAddress
             """;
 
+    public Uni<List<Device>> listAll(Session session){
+        return session.createQuery("FROM Device", Device.class).getResultList();
+    }
+
     public Uni<Device> findById(Long id, Session session){
         return session.createQuery(
                         HQL_FIND_DEVICE_BY_ID, Device.class)
