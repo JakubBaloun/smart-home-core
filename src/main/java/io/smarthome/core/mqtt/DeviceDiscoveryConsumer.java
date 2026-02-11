@@ -35,6 +35,7 @@ public class DeviceDiscoveryConsumer {
                     }
                 })
                 .chain(dtos -> deviceService.syncDevices(dtos))
+                .onFailure().invoke(e -> Log.errorf("Failed to process Z2M device discovery: %s", e.getMessage()))
                 .replaceWithVoid();
     }
 }

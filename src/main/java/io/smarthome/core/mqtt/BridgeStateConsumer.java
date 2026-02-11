@@ -12,7 +12,8 @@ public class BridgeStateConsumer {
     @Incoming("z2m-bridge")
     public Uni<Void> consume(byte[] payload) {
         return Uni.createFrom().voidItem()
-                .invoke(() -> Log.infof("MQTT Message received from bridge: %s", new String(payload))
-                );
+                .invoke(() -> Log.infof("MQTT Message received from bridge: %s", new String(payload)))
+                .onFailure().invoke(e -> Log.errorf("Failed to process bridge state: %s", e.getMessage()))
+                .replaceWithVoid();
     }
 }
