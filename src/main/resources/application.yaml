@@ -38,14 +38,13 @@ mp:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/state
 
-# Test profile - disable MQTT Dev Services and connector
+# Test profile - override MQTT to use Dev Services broker
 "%test":
-  quarkus:
-    reactive-messaging-mqtt:
-      devservices:
-        enabled: false
   mp:
     messaging:
-      incoming:
-        zigbee2mqtt-bridge:
-          connector: smallrye-in-memory
+      connector:
+        smallrye-mqtt:
+          # Use the Testcontainers broker provided by Dev Services
+          # This is automatically configured and works in tests
+          host: ${quarkus.reactive-messaging-mqtt.devservices.host:localhost}
+          port: ${quarkus.reactive-messaging-mqtt.devservices.port:1883}
