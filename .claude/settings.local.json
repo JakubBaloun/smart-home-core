@@ -14,7 +14,11 @@
       "Bash(git -C /Users/jakub/Work/EWallet diff services/backoffice-b4f/openapi/openapi.yaml)",
       "Bash(git checkout:*)",
       "Bash(xargs:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(git pull:*)",
+      "Bash(git restore:*)",
+      "Bash(git commit:*)",
+      "Bash(git add:*)"
     ]
   }
 }
