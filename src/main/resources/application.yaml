@@ -38,9 +38,14 @@ mp:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/state
 
-# Test profile - disable MQTT health checks
+# Test profile - disable MQTT Dev Services and connector
 "%test":
+  quarkus:
+    reactive-messaging-mqtt:
+      devservices:
+        enabled: false
   mp:
     messaging:
-      health:
-        enabled: false
+      incoming:
+        zigbee2mqtt-bridge:
+          connector: smallrye-in-memory
