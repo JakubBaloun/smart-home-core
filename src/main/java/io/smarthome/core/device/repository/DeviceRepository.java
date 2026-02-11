@@ -27,6 +27,14 @@ public class DeviceRepository {
             FROM Device WHERE ieeeAddress = :ieeeAddress
             """;
 
+    public static final String HQL_MARK_UNAVAILABLE_NOT_IN = """
+            UPDATE Device SET available = false WHERE ieeeAddress NOT IN :addresses
+            """;
+
+    public static final String HQL_MARK_ALL_UNAVAILABLE = """
+            UPDATE Device SET available = false
+            """;
+
     public Uni<List<Device>> listAll(Session session) {
         return session.createQuery(HQL_LIST_DEVICES, Device.class).getResultList();
     }
@@ -62,5 +70,16 @@ public class DeviceRepository {
 
     public Uni<Void> update(Device device, Session session) {
         return session.merge(device).replaceWithVoid();
+    }
+
+    public Uni<Integer> markUnavailableNotIn(List<String> activeAddresses, Session session) {
+        if (activeAddresses == null || activeAddresses.isEmpty()) {
+            return session.createMutationQuery(HQL_MARK_ALL_UNAVAILABLE)
+                    .executeUpdate();
+        }
+
+        return session.createMutationQuery(HQL_MARK_UNAVAILABLE_NOT_IN)
+                .setParameter("addresses", activeAddresses)
+                .executeUpdate();
     }
 }

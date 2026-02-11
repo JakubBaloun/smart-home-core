@@ -2,7 +2,11 @@ package io.smarthome.core.device.service;
 
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
+import io.smarthome.core.device.Z2MDevicePayload;
+import io.smarthome.core.device.event.DevicesSyncedEvent;
+import io.smarthome.core.device.service.mapper.DeviceMapper;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import io.smarthome.core.common.exception.ResourceNotFoundException;
 import io.smarthome.core.device.Device;
@@ -20,7 +24,47 @@ public class DeviceService {
     SessionFactory sessionFactory;
 
     @Inject
+    DeviceMapper deviceMapper;
+
+    @Inject
     DeviceRepository deviceRepository;
+
+    @Inject
+    Event<DevicesSyncedEvent> eventBus;
+
+    public Uni<Void> syncDevices(List<Z2MDevicePayload> payloads) {
+        return Uni.createFrom().item(payloads)
+                .map(list -> list.stream()
+                        .map(Z2MDevicePayload::ieeeAddress)
+                        .toList()
+                )
+                .chain(activeIeeeAddresses -> {
+                    Log.infof("Syncing %d devices from Z2M.", activeIeeeAddresses.size());
+                    return sessionFactory.withTransaction(session -> {
+                        Uni<Void> upsertChain = Uni.createFrom().voidItem();
+                        for (Z2MDevicePayload payload : payloads) {
+                            upsertChain = upsertChain.chain(() ->
+                                    deviceRepository.findByIeeeAddress(payload.ieeeAddress(), session)
+                                            .chain(existing -> {
+                                                if (existing == null) {
+                                                    return deviceRepository.save(deviceMapper.toEntity(payload), session);
+                                                } else {
+                                                    deviceMapper.updateEntityFromPayload(payload, existing);
+                                                    return deviceRepository.update(existing, session);
+                                                }
+                                            })
+                            );
+                        }
+                        return upsertChain.chain(() ->
+                                deviceRepository.markUnavailableNotIn(activeIeeeAddresses, session)
+                        ).replaceWithVoid();
+                    })
+                    .invoke(() -> {
+                        eventBus.fire(new DevicesSyncedEvent(activeIeeeAddresses, activeIeeeAddresses.size()));
+                        Log.infof("Synced completed. Event fired.");
+                    });
+                }).replaceWithVoid();
+    }
 
     public Uni<List<Device>> getAllDevices() {
         return Uni.createFrom().voidItem()

@@ -14,7 +14,8 @@ class HealthTest {
         given()
           .when().get("/q/health")
           .then()
-             .statusCode(200);
+             .statusCode(200)
+             .body("status", is("UP"));
     }
 
 }
