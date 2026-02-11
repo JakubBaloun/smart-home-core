@@ -18,7 +18,13 @@ IoT smart home platform running on Raspberry Pi 5, built with Quarkus (reactive 
 
 ```
 src/main/java/org/acme/       # Application code (feature-based packages)
-  device/                      # Device management (entities, REST, MQTT listener)
+  common/                      # Shared infrastructure (ErrorResponse, exceptions)
+    exception/                 # Global exception handler, custom exceptions
+  device/                      # Device management domain
+    Device.java, DeviceType.java   # Entity & enum (model layer)
+    repository/                # Data access (*Repository)
+    service/                   # Business logic (*Service)
+    resource/                  # REST layer (*Resource, DTOs, MapStruct mappers)
   telemetry/                   # Time-series data pipeline
   automation/                  # Rules engine
   mqtt/                        # Shared MQTT integration (SmallRye consumers/producers)
@@ -26,7 +32,7 @@ src/main/java/org/acme/       # Application code (feature-based packages)
 src/main/resources/
   application.yaml             # Config (YAML, not .properties)
   db/migration/                # Flyway migrations (V{major}.{minor}.{patch}__Description.sql)
-src/test/java/org/acme/        # Tests (*Test.java = unit, *IT.java = integration)
+src/test/java/org/acme/        # Tests mirror main structure (*Test.java = unit, *IT.java = integration)
 docker-compose.yaml            # All services: app, postgres, mosquitto, zigbee2mqtt
 Dockerfile                     # Production image (fast-jar layout)
 ```

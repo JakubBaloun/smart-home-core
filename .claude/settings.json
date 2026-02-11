@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(curl:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(java:*)",
+      "Bash(./mvnw:*)",
+      "Bash(mvn:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(gh:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:quarkus.io)",
+      "WebFetch(domain:smallrye.io)",
+      "mcp__ide__getDiagnostics"
+    ],
+    "deny": []
+  }
+}

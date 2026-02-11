@@ -1,7 +1,9 @@
-package org.acme.device;
+package org.acme.device.repository;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.acme.device.Device;
+import org.acme.device.DeviceType;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,8 +22,7 @@ public class DeviceRepositoryTest {
 
     @BeforeEach
     @AfterEach
-    void cleanup(){
-        // Clean DB before and after each test
+    void cleanup() {
         sessionFactory.withTransaction((session, tx) ->
                 session.createQuery("DELETE FROM Device").executeUpdate()
         ).await().indefinitely();
@@ -82,7 +83,7 @@ public class DeviceRepositoryTest {
     }
 
     @Test
-    void testFindByType(){
+    void testFindByType() {
         //GIVEN
         Device device1 = Device.builder()
                 .ieeeAddress("11:22:33:44:55:66")
@@ -132,5 +133,4 @@ public class DeviceRepositoryTest {
         assertNotNull(foundDevices, "Found devices list should not be null");
         assertEquals(2, foundDevices.size(), "There should be 2 devices of type SENSOR");
     }
-
 }

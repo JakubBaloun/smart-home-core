@@ -1,31 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(./mvnw clean package)",
-      "Bash(./mvnw test*)",
-      "Bash(./mvnw verify*)",
-      "Bash(./mvnw quarkus:dev*)",
-      "Bash(./mvnw compile*)",
-      "Bash(./mvnw clean compile*)",
-      "Bash(java -version*)",
-      "Bash(./mvnw -version*)",
-      "Bash(docker compose logs*)",
-      "Bash(docker compose ps*)",
-      "Bash(docker ps*)",
-      "Bash(git status*)",
-      "Bash(git log*)",
-      "Bash(git diff*)",
-      "Bash(git branch*)",
-      "Bash(git show*)",
-      "Bash(gh pr *)",
-      "Bash(gh issue *)",
-      "WebSearch",
-      "Bash(echo:*)",
-      "Bash(./mvnw clean package:*)",
-      "Bash(git -C /Users/jakub/byt/smart-home-core diff --cached)",
-      "Bash(git -C /Users/jakub/byt/smart-home-core diff)",
-      "Bash(git -C /Users/jakub/byt/smart-home-core status --short)"
-    ],
-    "deny": []
+      "Bash(git merge-base:*)",
+      "Bash(xxd:*)",
+      "Bash(for i in 1 2 3)",
+      "Bash(do echo \"=== Run $i ===\")",
+      "Bash(done)",
+      "Bash(git -C /Users/jakub/Work/EWallet log --oneline -5 -- services/backoffice-b4f/openapi/openapi.yaml)",
+      "Bash(git -C /Users/jakub/Work/EWallet show fad9c869cb --stat -- services/backoffice-b4f/openapi/openapi.yaml)",
+      "Bash(git -C /Users/jakub/Work/EWallet log --oneline -5 -- services/backoffice-b4f/src/main/java/com/fng/ewallet/bob4f/tme/sse/MatchingProgressResource.java)",
+      "Bash(git -C /Users/jakub/Work/EWallet show d909d9527e --stat)",
+      "Bash(git -C /Users/jakub/Work/EWallet diff --stat services/backoffice-b4f/openapi/openapi.yaml)",
+      "Bash(git -C /Users/jakub/Work/EWallet diff services/backoffice-b4f/openapi/openapi.yaml)",
+      "Bash(git checkout:*)",
+      "Bash(xargs:*)",
+      "Bash(wc:*)"
+    ]
   }
 }
