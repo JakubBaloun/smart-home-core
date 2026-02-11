@@ -27,23 +27,26 @@ influxdb:
 # Reactive Messaging (MQTT)
 mp:
   messaging:
-    connector:
-      smallrye-mqtt:
+    incoming:
+      z2m-devices:
+        connector: smallrye-mqtt
         host: ${MQTT_HOST:mqtt-broker}
         port: ${MQTT_PORT:1883}
-        max-message-size: 1048576
-        # Shared MQTT client configuration
-        client-id: smart-home-core
+        topic: zigbee2mqtt/bridge/devices
+        qos: 1
+        client-id: smart-home-core-devices
         reconnect-attempts: -1
         reconnect-interval-seconds: 5
         keep-alive-seconds: 60
         auto-keep-alive: true
-    incoming:
-      z2m-devices:
-        connector: smallrye-mqtt
-        topic: zigbee2mqtt/bridge/devices
-        qos: 1
       z2m-bridge:
         connector: smallrye-mqtt
+        host: ${MQTT_HOST:mqtt-broker}
+        port: ${MQTT_PORT:1883}
         topic: zigbee2mqtt/bridge/state
         qos: 0
+        client-id: smart-home-core-bridge
+        reconnect-attempts: -1
+        reconnect-interval-seconds: 5
+        keep-alive-seconds: 60
+        auto-keep-alive: true
