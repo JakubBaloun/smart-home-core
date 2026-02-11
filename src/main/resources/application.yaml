@@ -38,3 +38,12 @@ mp:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/state
 
+# Test profile - disable MQTT by using invalid connection
+"%test":
+  mp:
+    messaging:
+      connector:
+        smallrye-mqtt:
+          host: localhost
+          port: 1
+
