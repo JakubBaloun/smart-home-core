@@ -32,14 +32,18 @@ mp:
         host: ${MQTT_HOST:mqtt-broker}
         port: ${MQTT_PORT:1883}
         max-message-size: 1048576
+        # Shared MQTT client configuration
+        client-id: smart-home-core
+        reconnect-attempts: -1
+        reconnect-interval-seconds: 5
+        keep-alive-seconds: 60
+        auto-keep-alive: true
     incoming:
       z2m-devices:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/devices
         qos: 1
-        client-id: smart-home-core-devices
       z2m-bridge:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/state
         qos: 0
-        client-id: smart-home-core-bridge
