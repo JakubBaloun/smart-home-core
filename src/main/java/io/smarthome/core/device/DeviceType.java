@@ -1,4 +1,4 @@
-package org.acme.device;
+package io.smarthome.core.device;
 
 public enum DeviceType {
     LIGHT,

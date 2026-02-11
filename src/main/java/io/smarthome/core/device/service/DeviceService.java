@@ -1,13 +1,13 @@
-package org.acme.device.service;
+package io.smarthome.core.device.service;
 
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.acme.common.exception.ResourceNotFoundException;
-import org.acme.device.Device;
-import org.acme.device.repository.DeviceRepository;
-import org.acme.device.resource.UpdateDeviceRequest;
+import io.smarthome.core.common.exception.ResourceNotFoundException;
+import io.smarthome.core.device.Device;
+import io.smarthome.core.device.repository.DeviceRepository;
+import io.smarthome.core.device.resource.UpdateDeviceRequest;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 
 import java.time.OffsetDateTime;

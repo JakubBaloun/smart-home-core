@@ -1,4 +1,4 @@
-package org.acme.common;
+package io.smarthome.core.common;
 
 import lombok.Builder;
 

@@ -1,4 +1,4 @@
-package org.acme.common.exception;
+package io.smarthome.core.common.exception;
 
 import lombok.Getter;
 
