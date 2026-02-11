@@ -31,20 +31,15 @@ mp:
       smallrye-mqtt:
         host: ${MQTT_HOST:mqtt-broker}
         port: ${MQTT_PORT:1883}
-        client-id: smart-home-core
-        auto-generated-client-id: false
+        max-message-size: 1048576
     incoming:
-      zigbee2mqtt-bridge:
+      z2m-devices:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/bridge/devices
+        qos: 1
+        client-id: smart-home-core-devices
+      z2m-bridge:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/state
-
-# Test profile - override MQTT to use Dev Services broker
-"%test":
-  mp:
-    messaging:
-      connector:
-        smallrye-mqtt:
-          # Use the Testcontainers broker provided by Dev Services
-          # This is automatically configured and works in tests
-          host: ${quarkus.reactive-messaging-mqtt.devservices.host:localhost}
-          port: ${quarkus.reactive-messaging-mqtt.devservices.port:1883}
+        qos: 0
+        client-id: smart-home-core-bridge
