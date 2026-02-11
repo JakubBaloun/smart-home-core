@@ -1,4 +1,4 @@
-package org.acme.device.resource;
+package io.smarthome.core.device.resource;
 
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
@@ -9,7 +9,7 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
-import org.acme.device.service.DeviceService;
+import io.smarthome.core.device.service.DeviceService;
 import org.jboss.resteasy.reactive.RestPath;
 
 import java.util.List;

@@ -1,9 +1,9 @@
-package org.acme.device.repository;
+package io.smarthome.core.device.repository;
 
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.acme.device.Device;
-import org.acme.device.DeviceType;
+import io.smarthome.core.device.Device;
+import io.smarthome.core.device.DeviceType;
 import org.hibernate.reactive.mutiny.Mutiny.Session;
 
 import java.util.List;

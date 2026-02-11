@@ -1,8 +1,8 @@
-package org.acme.common.exception;
+package io.smarthome.core.common.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.ws.rs.core.Response;
-import org.acme.common.ErrorResponse;
+import io.smarthome.core.common.ErrorResponse;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 

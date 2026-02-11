@@ -1,7 +1,7 @@
-package org.acme.device.resource;
+package io.smarthome.core.device.resource;
 
 import jakarta.validation.constraints.NotBlank;
-import org.acme.device.DeviceType;
+import io.smarthome.core.device.DeviceType;
 
 public record UpdateDeviceRequest(
         @NotBlank(message = "friendlyName must not be blank")

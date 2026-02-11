@@ -29,7 +29,7 @@ mp:
   messaging:
     connector:
       smallrye-mqtt:
-        host: ${MQTT_HOST:localhost}
+        host: ${MQTT_HOST:mqtt-broker}
         port: ${MQTT_PORT:1883}
         client-id: smart-home-core
         auto-generated-client-id: false

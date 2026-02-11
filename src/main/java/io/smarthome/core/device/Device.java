@@ -1,4 +1,4 @@
-package org.acme.device;
+package io.smarthome.core.device;
 
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import jakarta.persistence.*;

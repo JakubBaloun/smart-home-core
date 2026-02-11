@@ -1,9 +1,9 @@
-package org.acme.device.repository;
+package io.smarthome.core.device.repository;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
-import org.acme.device.Device;
-import org.acme.device.DeviceType;
+import io.smarthome.core.device.Device;
+import io.smarthome.core.device.DeviceType;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

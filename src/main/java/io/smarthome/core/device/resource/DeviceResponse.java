@@ -1,7 +1,7 @@
-package org.acme.device.resource;
+package io.smarthome.core.device.resource;
 
 import lombok.Builder;
-import org.acme.device.DeviceType;
+import io.smarthome.core.device.DeviceType;
 
 import java.time.OffsetDateTime;
 
