@@ -1,6 +1,7 @@
-package org.acme.device;
+package org.acme.device.resource;
 
 import lombok.Builder;
+import org.acme.device.DeviceType;
 
 import java.time.OffsetDateTime;
 

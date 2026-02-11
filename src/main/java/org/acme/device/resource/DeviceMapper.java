@@ -1,5 +1,6 @@
-package org.acme.device;
+package org.acme.device.resource;
 
+import org.acme.device.Device;
 import org.mapstruct.Mapper;
 
 import java.util.List;

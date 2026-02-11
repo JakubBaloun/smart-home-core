@@ -1,7 +1,10 @@
-package org.acme.device;
+package org.acme.device.resource;
 
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
+import org.acme.device.Device;
+import org.acme.device.DeviceType;
+import org.acme.device.repository.DeviceRepository;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -108,6 +111,24 @@ public class DeviceResourceTest {
             .then()
                 .statusCode(200)
                 .body("friendlyName", is("Kitchen Sensor"));
+    }
+
+    @Test
+    void testUpdateType() {
+        given()
+            .contentType("application/json")
+            .body("""
+                {"friendlyName": "Living Room Sensor", "type": "LIGHT"}
+                """)
+            .when().put("/api/devices/{id}", seededDeviceId)
+            .then()
+                .statusCode(204);
+
+        given()
+            .when().get("/api/devices/{id}", seededDeviceId)
+            .then()
+                .statusCode(200)
+                .body("type", is("LIGHT"));
     }
 
     @Test

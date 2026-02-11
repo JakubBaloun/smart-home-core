@@ -1,13 +1,19 @@
-package org.acme.device;
+package org.acme.device.repository;
 
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.acme.device.Device;
+import org.acme.device.DeviceType;
 import org.hibernate.reactive.mutiny.Mutiny.Session;
 
 import java.util.List;
 
 @ApplicationScoped
 public class DeviceRepository {
+
+    public static final String HQL_LIST_DEVICES  = """
+            FROM Device
+            """;
 
     public static final String HQL_FIND_DEVICE_BY_ID  = """
             FROM Device WHERE id = :id
@@ -21,40 +27,40 @@ public class DeviceRepository {
             FROM Device WHERE ieeeAddress = :ieeeAddress
             """;
 
-    public Uni<List<Device>> listAll(Session session){
-        return session.createQuery("FROM Device", Device.class).getResultList();
+    public Uni<List<Device>> listAll(Session session) {
+        return session.createQuery(HQL_LIST_DEVICES, Device.class).getResultList();
     }
 
-    public Uni<Device> findById(Long id, Session session){
+    public Uni<Device> findById(Long id, Session session) {
         return session.createQuery(
                         HQL_FIND_DEVICE_BY_ID, Device.class)
                         .setParameter("id", id)
                         .getSingleResultOrNull();
     }
 
-    public Uni<List<Device>> findByType(DeviceType type, Session session){
+    public Uni<List<Device>> findByType(DeviceType type, Session session) {
         return session.createQuery(
                 HQL_FIND_DEVICES_BY_TYPE, Device.class)
                 .setParameter("type", type)
                 .getResultList();
     }
 
-    public Uni<Device> findByIeeeAddress(String ieeeAddress, Session session){
+    public Uni<Device> findByIeeeAddress(String ieeeAddress, Session session) {
         return session.createQuery(
                         HQL_FIND_BY_IEEE_ADDRESS, Device.class)
                         .setParameter("ieeeAddress", ieeeAddress)
                         .getSingleResultOrNull();
     }
 
-    public Uni<Void> save(Device device, Session session){
+    public Uni<Void> save(Device device, Session session) {
         return session.persist(device).replaceWithVoid();
     }
 
-    public Uni<Void> delete(Device device, Session session){
+    public Uni<Void> delete(Device device, Session session) {
         return session.remove(device).replaceWithVoid();
     }
 
-    public Uni<Void> update(Device device,Session session){
+    public Uni<Void> update(Device device, Session session) {
         return session.merge(device).replaceWithVoid();
     }
 }

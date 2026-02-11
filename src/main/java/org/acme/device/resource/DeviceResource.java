@@ -1,4 +1,4 @@
-package org.acme.device;
+package org.acme.device.resource;
 
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
@@ -9,6 +9,7 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
+import org.acme.device.service.DeviceService;
 import org.jboss.resteasy.reactive.RestPath;
 
 import java.util.List;
@@ -24,7 +25,7 @@ public class DeviceResource {
     DeviceMapper deviceMapper;
 
     @GET
-    public Uni<List<DeviceResponse>> getAllDevices(){
+    public Uni<List<DeviceResponse>> getAllDevices() {
         return Uni.createFrom().voidItem()
                 .invoke(() -> Log.infof("Request received to get all devices"))
                 .chain(() -> deviceService.getAllDevices())
@@ -33,7 +34,7 @@ public class DeviceResource {
 
     @GET
     @Path("/{id}")
-    public Uni<DeviceResponse> getDeviceById(@RestPath Long id){
+    public Uni<DeviceResponse> getDeviceById(@RestPath Long id) {
         return Uni.createFrom().voidItem()
                 .invoke(() -> Log.infof("Request received to get device with id: %d", id))
                 .chain(() -> deviceService.getDeviceById(id))
@@ -42,7 +43,7 @@ public class DeviceResource {
 
     @PUT
     @Path("/{id}")
-    public Uni<Void> updateFriendlyName(@RestPath Long id, @Valid UpdateDeviceRequest request){
+    public Uni<Void> updateDevice(@RestPath Long id, @Valid UpdateDeviceRequest request) {
         return Uni.createFrom().voidItem()
                 .invoke(() -> Log.infof("Request received to update device with id: %d", id))
                 .chain(() -> deviceService.updateDevice(id, request));
@@ -50,7 +51,7 @@ public class DeviceResource {
 
     @DELETE
     @Path("/{id}")
-    public Uni<Void> deleteDevice(@RestPath Long id){
+    public Uni<Void> deleteDevice(@RestPath Long id) {
         return Uni.createFrom().voidItem()
                 .invoke(() -> Log.infof("Request received to delete device with id: %d", id))
                 .chain(() -> deviceService.deleteDevice(id));
