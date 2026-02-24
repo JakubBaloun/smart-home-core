@@ -44,4 +44,3 @@ src/main/resources/application-dev.yaml
 # Patch files
 *.orig
 *.rej
-/src/main/resources/application-test.yaml
