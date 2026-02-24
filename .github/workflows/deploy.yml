@@ -18,14 +18,6 @@ jobs:
         run: mvn clean package
 
       - name: Docker build and deploy
-        env:
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          DB_JDBC_URL: ${{ vars.DB_JDBC_URL }}
-          DB_REACTIVE_URL: ${{ vars.DB_REACTIVE_URL }}
-          INFLUX_USER: ${{ vars.INFLUX_USER }}
-          INFLUX_PASSWORD: ${{ secrets.INFLUX_PASSWORD }}
-          INFLUX_TOKEN: ${{ secrets.INFLUX_TOKEN }}
         run: |
           docker build -t smart-home-app:latest .
-          docker compose up -d
+          docker compose --env-file /home/jakub/.env up -d
