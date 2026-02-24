@@ -19,10 +19,10 @@ quarkus:
 
 # InfluxDB konfigurace
 influxdb:
-  url: ${INFLUXDB_URL:http://localhost:8086}
-  token: ${INFLUXDB_TOKEN:my-super-secret-token}
-  org: ${INFLUXDB_ORG:smart-home}
-  bucket: ${INFLUXDB_BUCKET:telemetry}
+  url: ${INFLUX_URL}
+  token: ${INFLUX_TOKEN}
+  org: ${INFLUX_ORG}
+  bucket: ${INFLUX_BUCKET}
 
 # Reactive Messaging (MQTT)
 mp:
