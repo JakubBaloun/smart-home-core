@@ -1,0 +1,18 @@
+meta {
+  name: Update Device
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/devices/{{deviceId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "friendlyName": "living_room_light",
+    "type": "LIGHT"
+  }
+}

@@ -57,3 +57,10 @@ mp:
         qos: 0
         client-id: smart-home-core-telemetry
         failure-strategy: ignore
+
+    outgoing:
+      z2m-command:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/command
+        qos: 1
+        client-id: smart-home-core-command

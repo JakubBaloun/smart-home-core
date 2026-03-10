@@ -43,7 +43,7 @@ public class TelemetryResourceTest {
                 .when().get("/api/telemetry/sensor-1")
                 .then()
                 .statusCode(200)
-                .body("deviceId", is("sensor-1"))
+                .body("deviceName", is("sensor-1"))
                 .body("field", is("temperature"))
                 .body("points", hasSize(1))
                 .body("points[0].value", is(22.5f));
@@ -87,7 +87,7 @@ public class TelemetryResourceTest {
                 .when().get("/api/telemetry/sensor-1/latest")
                 .then()
                 .statusCode(200)
-                .body("deviceId", is("sensor-1"))
+                .body("deviceName", is("sensor-1"))
                 .body("values.temperature", is(22.5f))
                 .body("values.humidity", is(60.0f))
                 .body("lastUpdated", notNullValue());

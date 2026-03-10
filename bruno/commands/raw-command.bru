@@ -1,0 +1,22 @@
+meta {
+  name: Raw Command
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/devices/{{deviceId}}/command
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "command": "raw",
+    "payload": {
+      "state": "ON",
+      "brightness": 150,
+      "color_temp": 300
+    }
+  }
+}

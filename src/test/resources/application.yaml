@@ -14,6 +14,9 @@ mp:
         enabled: false
       z2m-telemetry:
         enabled: false
+    outgoing:
+      z2m-command:
+        connector: smallrye-in-memory
 
 influxdb:
   url: http://localhost:8086

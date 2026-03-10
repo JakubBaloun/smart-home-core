@@ -33,22 +33,22 @@ public class TelemetryResource {
     TelemetryService telemetryService;
 
     @GET
-    @Path("/{deviceId}")
+    @Path("/{deviceName}")
     public Uni<TelemetryResponse> getHistory(
-            @RestPath String deviceId,
+            @RestPath String deviceName,
             @RestQuery String field,
             @RestQuery String from,
             @RestQuery String to,
             @RestQuery String aggregate,
             @RestQuery String window) {
 
-        Log.infof("Request received for telemetry history: device=%s, field=%s", deviceId, field);
+        Log.infof("Request received for telemetry history: device=%s, field=%s", deviceName, field);
 
         ValidatedParams params = validateHistoryParams(field, from, to, aggregate, window);
 
         Uni<List<FluxTable>> query = aggregate != null
-                ? telemetryService.queryTelemetryAggregated(deviceId, "sensor_data", field, params.from(), params.to(), aggregate, window)
-                : telemetryService.queryTelemetry(deviceId, "sensor_data", field, params.from(), params.to());
+                ? telemetryService.queryTelemetryAggregated(deviceName, "sensor_data", field, params.from(), params.to(), aggregate, window)
+                : telemetryService.queryTelemetry(deviceName, "sensor_data", field, params.from(), params.to());
 
         return query.map(tables -> {
             List<TelemetryPoint> points = tables.stream()
@@ -56,16 +56,16 @@ public class TelemetryResource {
                     .filter(r -> r.getValue() != null)
                     .map(r -> new TelemetryPoint(r.getTime(), ((Number) r.getValue()).doubleValue()))
                     .toList();
-            return new TelemetryResponse(deviceId, field, points);
+            return new TelemetryResponse(deviceName, field, points);
         });
     }
 
     @GET
-    @Path("/{deviceId}/latest")
-    public Uni<LatestTelemetryResponse> getLatest(@RestPath String deviceId) {
-        Log.infof("Request received for latest telemetry: device=%s", deviceId);
+    @Path("/{deviceName}/latest")
+    public Uni<LatestTelemetryResponse> getLatest(@RestPath String deviceName) {
+        Log.infof("Request received for latest telemetry: device=%s", deviceName);
 
-        return telemetryService.queryLatest(deviceId).map(tables -> {
+        return telemetryService.queryLatest(deviceName).map(tables -> {
             Map<String, Double> values = new LinkedHashMap<>();
             Instant lastUpdated = null;
 
@@ -80,7 +80,7 @@ public class TelemetryResource {
                 }
             }
 
-            return new LatestTelemetryResponse(deviceId, values, lastUpdated);
+            return new LatestTelemetryResponse(deviceName, values, lastUpdated);
         });
     }
 

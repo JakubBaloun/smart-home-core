@@ -1,0 +1,11 @@
+meta {
+  name: Get Latest Telemetry
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/telemetry/{{deviceName}}/latest
+  body: none
+  auth: none
+}

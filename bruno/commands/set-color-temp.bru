@@ -1,0 +1,20 @@
+meta {
+  name: Set Color Temperature
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/devices/{{deviceId}}/command
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "command": "setColorTemp",
+    "payload": {
+      "color_temp": 370
+    }
+  }
+}

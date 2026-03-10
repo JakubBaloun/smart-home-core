@@ -1,0 +1,19 @@
+meta {
+  name: Get Telemetry History (Aggregated)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/telemetry/{{deviceName}}
+  body: none
+  auth: none
+}
+
+params:query {
+  field: temperature
+  from: 2026-01-01T00:00:00Z
+  to: 2026-12-31T23:59:59Z
+  aggregate: mean
+  window: 1h
+}

@@ -20,6 +20,16 @@ public class GlobalExceptionHandler {
     }
 
     @ServerExceptionMapper
+    public RestResponse<ErrorResponse> handleDeviceUnavailable(DeviceUnavailableException e) {
+        ErrorResponse error = ErrorResponse.builder()
+                .title("Device Unavailable")
+                .detail(e.getMessage())
+                .status(Response.Status.CONFLICT.getStatusCode())
+                .build();
+        return RestResponse.status(Response.Status.CONFLICT, error);
+    }
+
+    @ServerExceptionMapper
     public RestResponse<ErrorResponse> handleBadRequest(BadRequestException e) {
         ErrorResponse error = ErrorResponse.builder()
                 .title("Bad Request")
