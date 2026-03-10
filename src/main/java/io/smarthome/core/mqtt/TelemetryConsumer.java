@@ -38,6 +38,8 @@ public class TelemetryConsumer {
                 .map(MqttMessageMetadata::getTopic)
                 .orElse("");
 
+        Log.infof("TelemetryConsumer received message on topic: %s", topic);
+
         if (topic.contains("/bridge/")) {
             Log.debugf("Skipping bridge message on topic: %s", topic);
             return Uni.createFrom().completionStage(message.ack());

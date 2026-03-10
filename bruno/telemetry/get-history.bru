@@ -5,13 +5,13 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/api/telemetry/{{deviceName}}
+  url: {{baseUrl}}/api/telemetry/{{deviceName}}?field=humidity&from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z
   body: none
   auth: none
 }
 
 params:query {
-  field: temperature
+  field: humidity
   from: 2026-01-01T00:00:00Z
   to: 2026-12-31T23:59:59Z
 }
