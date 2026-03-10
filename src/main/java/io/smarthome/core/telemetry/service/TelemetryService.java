@@ -45,7 +45,7 @@ public class TelemetryService {
                 .replaceWithVoid();
     }
 
-    public Uni<List<FluxTable>> queryTelemetry(String deviceId, String field, Instant from, Instant to) {
+    public Uni<List<FluxTable>> queryTelemetry(String deviceId, String measurement, String field, Instant from, Instant to) {
         return Uni.createFrom().item(() -> {
                     String flux = """
                 from(bucket: "%s")
@@ -57,7 +57,7 @@ public class TelemetryService {
                             config.bucket(),
                             from.toString(),
                             to.toString(),
-                            sanitize(field),
+                            sanitize(measurement),
                             sanitize(deviceId),
                             sanitize(field)
                     );

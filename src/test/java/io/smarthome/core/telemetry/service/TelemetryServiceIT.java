@@ -33,7 +33,7 @@ public class TelemetryServiceIT {
                 .await().indefinitely();
 
         Instant to = Instant.now().plusSeconds(5);
-        List<FluxTable> result = telemetryService.queryTelemetry(deviceId, "temperature", from, to)
+        List<FluxTable> result = telemetryService.queryTelemetry(deviceId, "temperature", "temperature", from, to)
                 .await().indefinitely();
 
         // THEN
@@ -62,14 +62,14 @@ public class TelemetryServiceIT {
         Instant to = Instant.now().plusSeconds(5);
 
         // THEN - temperature
-        List<FluxTable> tempResult = telemetryService.queryTelemetry(deviceId, "temperature", from, to)
+        List<FluxTable> tempResult = telemetryService.queryTelemetry(deviceId, "temperature", "temperature", from, to)
                 .await().indefinitely();
         assertFalse(tempResult.isEmpty(), "Expected temperature data");
         double temperature = ((Number) tempResult.getFirst().getRecords().getFirst().getValue()).doubleValue();
         assertEquals(21.0, temperature, 0.001);
 
         // THEN - humidity
-        List<FluxTable> humResult = telemetryService.queryTelemetry(deviceId, "humidity", from, to)
+        List<FluxTable> humResult = telemetryService.queryTelemetry(deviceId, "humidity", "humidity", from, to)
                 .await().indefinitely();
         assertFalse(humResult.isEmpty(), "Expected humidity data");
         double humidity = ((Number) humResult.getFirst().getRecords().getFirst().getValue()).doubleValue();
@@ -84,7 +84,7 @@ public class TelemetryServiceIT {
         Instant to = Instant.now();
 
         // WHEN
-        List<FluxTable> result = telemetryService.queryTelemetry(deviceId, "temperature", from, to)
+        List<FluxTable> result = telemetryService.queryTelemetry(deviceId, "sensor_data", "temperature", from, to)
                 .await().indefinitely();
 
         // THEN
@@ -108,7 +108,7 @@ public class TelemetryServiceIT {
                 .await().indefinitely();
 
         Instant to = Instant.now().plusSeconds(5);
-        List<FluxTable> result = telemetryService.queryTelemetry(deviceId, "temperature", from, to)
+        List<FluxTable> result = telemetryService.queryTelemetry(deviceId, "temperature", "temperature", from, to)
                 .await().indefinitely();
 
         // THEN

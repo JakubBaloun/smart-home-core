@@ -88,7 +88,7 @@ public class TelemetryServiceTest {
         Instant to = Instant.parse("2026-01-02T00:00:00Z");
 
         // WHEN
-        List<FluxTable> result = telemetryService.queryTelemetry("device-123", "temperature", from, to)
+        List<FluxTable> result = telemetryService.queryTelemetry("device-123", "sensor_data", "temperature", from, to)
                 .await().indefinitely();
 
         // THEN
@@ -105,7 +105,7 @@ public class TelemetryServiceTest {
 
         // WHEN / THEN
         assertThrows(TelemetryException.class, () ->
-                telemetryService.queryTelemetry("device-123", "temperature",
+                telemetryService.queryTelemetry("device-123", "sensor_data", "temperature",
                                 Instant.now().minusSeconds(3600), Instant.now())
                         .await().indefinitely()
         );
@@ -117,7 +117,7 @@ public class TelemetryServiceTest {
         when(queryApi.query(anyString(), anyString())).thenReturn(List.of());
 
         // WHEN
-        List<FluxTable> result = telemetryService.queryTelemetry("device-123", "temperature",
+        List<FluxTable> result = telemetryService.queryTelemetry("device-123", "sensor_data", "temperature",
                         Instant.now().minusSeconds(3600), Instant.now())
                 .await().indefinitely();
 

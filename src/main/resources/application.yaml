@@ -43,9 +43,17 @@ mp:
         qos: 1
         client-id: smart-home-core-devices
         failure-strategy: ignore
+
       z2m-bridge:
         connector: smallrye-mqtt
         topic: zigbee2mqtt/bridge/state
         qos: 0
         client-id: smart-home-core-bridge
+        failure-strategy: ignore
+
+      z2m-telemetry:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/+
+        qos: 0
+        client-id: smart-home-core-telemetry
         failure-strategy: ignore

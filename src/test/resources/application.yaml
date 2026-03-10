@@ -12,6 +12,8 @@ mp:
         enabled: false
       z2m-bridge:
         enabled: false
+      z2m-telemetry:
+        enabled: false
 
 influxdb:
   url: http://localhost:8086
