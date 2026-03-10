@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @ApplicationScoped
 public class TelemetryConsumer {
 
-    static final Set<String> KNOWN_FIELDS = Set.of(
+    public static final Set<String> KNOWN_FIELDS = Set.of(
             "temperature", "humidity", "battery", "power", "voltage", "energy", "linkquality"
     );
 

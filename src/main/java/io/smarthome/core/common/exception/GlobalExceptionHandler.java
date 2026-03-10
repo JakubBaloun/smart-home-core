@@ -1,6 +1,7 @@
 package io.smarthome.core.common.exception;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Response;
 import io.smarthome.core.common.ErrorResponse;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -16,6 +17,16 @@ public class GlobalExceptionHandler {
                 .status(Response.Status.NOT_FOUND.getStatusCode())
                 .build();
         return RestResponse.status(Response.Status.NOT_FOUND, error);
+    }
+
+    @ServerExceptionMapper
+    public RestResponse<ErrorResponse> handleBadRequest(BadRequestException e) {
+        ErrorResponse error = ErrorResponse.builder()
+                .title("Bad Request")
+                .detail(e.getMessage())
+                .status(Response.Status.BAD_REQUEST.getStatusCode())
+                .build();
+        return RestResponse.status(Response.Status.BAD_REQUEST, error);
     }
 
     @ServerExceptionMapper

@@ -69,6 +69,51 @@ public class TelemetryService {
                 .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
     }
 
+    public Uni<List<FluxTable>> queryTelemetryAggregated(String deviceId, String measurement, String field,
+                                                          Instant from, Instant to, String aggregate, String window) {
+        return Uni.createFrom().item(() -> {
+                    String flux = """
+                from(bucket: "%s")
+                  |> range(start: %s, stop: %s)
+                  |> filter(fn: (r) => r._measurement == "%s")
+                  |> filter(fn: (r) => r.device_id == "%s")
+                  |> filter(fn: (r) => r._field == "%s")
+                  |> aggregateWindow(every: %s, fn: %s, createEmpty: false)
+                """.formatted(
+                            config.bucket(),
+                            from.toString(),
+                            to.toString(),
+                            sanitize(measurement),
+                            sanitize(deviceId),
+                            sanitize(field),
+                            window,
+                            aggregate
+                    );
+                    return queryApi.query(flux, config.org());
+                })
+                .invoke(tables -> Log.infof("Queried aggregated telemetry for device %s, field %s", deviceId, field))
+                .onFailure().invoke(e -> Log.errorf("Failed to query aggregated telemetry for device %s: %s", deviceId, e.getMessage()))
+                .onFailure().transform(e -> new TelemetryException("Failed to query telemetry", e))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
+    }
+
+    public Uni<List<FluxTable>> queryLatest(String deviceId) {
+        return Uni.createFrom().item(() -> {
+                    String flux = """
+                from(bucket: "%s")
+                  |> range(start: -24h)
+                  |> filter(fn: (r) => r._measurement == "sensor_data")
+                  |> filter(fn: (r) => r.device_id == "%s")
+                  |> last()
+                """.formatted(config.bucket(), sanitize(deviceId));
+                    return queryApi.query(flux, config.org());
+                })
+                .invoke(tables -> Log.infof("Queried latest telemetry for device %s", deviceId))
+                .onFailure().invoke(e -> Log.errorf("Failed to query latest telemetry for device %s: %s", deviceId, e.getMessage()))
+                .onFailure().transform(e -> new TelemetryException("Failed to query latest telemetry", e))
+                .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
+    }
+
     private String sanitize(String input) {
         if (input == null || input.isBlank()) {
             throw new IllegalArgumentException("Input cannot be null or blank");
