@@ -6,7 +6,7 @@
 
 ## Project Overview
 
-IoT smart home platform running on Raspberry Pi 5, built with Quarkus (reactive stack) and deployed via Docker Compose. Controls Zigbee devices through Zigbee2MQTT and MQTT.
+IoT smart home platform running on Raspberry Pi 5. Monorepo: Quarkus backend (`backend/`) + React frontend (`frontend/`), deployed via Docker Compose. Controls Zigbee devices through Zigbee2MQTT and MQTT; device registry in PostgreSQL, telemetry in InfluxDB.
 
 **Main documentation:** See `/CLAUDE.md` in root for full project context, tech stack, and conventions.
 
@@ -22,25 +22,26 @@ IoT smart home platform running on Raspberry Pi 5, built with Quarkus (reactive 
 ### Tech Stack Summary
 
 - **Language:** Java 25 with Quarkus 3.30.x (reactive)
-- **Database:** PostgreSQL 17 (Hibernate Reactive + Panache)
+- **Database:** PostgreSQL 17 (Hibernate Reactive + Panache) + InfluxDB 2.x (telemetry)
 - **Messaging:** MQTT (Mosquitto + Zigbee2MQTT)
-- **Testing:** JUnit 5, REST Assured
-- **Build:** Maven wrapper (`./mvnw`)
+- **Testing:** JUnit 5, Mockito, REST Assured; Vitest (frontend)
+- **Build:** Maven wrapper (`./mvnw` in `backend/`); npm (`frontend/`)
 
 ### Common Commands
 
 ```bash
-./mvnw clean package                    # Build + run unit tests
-./mvnw verify -DskipITs=false           # Unit + integration tests
-./mvnw quarkus:dev                      # Dev mode with hot reload
-docker compose up -d                    # Start all services
+cd backend && ./mvnw clean package        # Build + run unit tests
+cd backend && ./mvnw verify -DskipITs=false  # Unit + integration tests
+cd backend && ./mvnw quarkus:dev          # Dev mode with hot reload
+cd frontend && npm test && npm run build  # Frontend tests + build
+docker compose -f docker-compose.dev.yaml up -d  # Local infra (postgres:5433, influx, mqtt)
 ```
 
 ### Configuration
 
 - **YAML only** - Never `.properties` files
-- `application.yaml` - Main config (with `%dev`, `%test`, `%prod` profiles)
-- Flyway migrations: `src/main/resources/db/migration/V{version}__{Description}.sql`
+- `backend/src/main/resources/application.yaml` - Main config (with `%dev` profile; test overrides in `backend/src/test/resources/application.yaml`)
+- Flyway migrations: `backend/src/main/resources/db/migration/V{version}__{Description}.sql`
 
 ### Architecture Pattern
 
@@ -94,6 +95,6 @@ For comprehensive patterns and standards, see `.claude/specs/`:
 ## Important Files
 
 - `CLAUDE.md` - Full project documentation (root level)
-- `docker-compose.yaml` - All services definition
-- `src/main/resources/application.yaml` - Main configuration
-- `src/main/resources/db/migration/` - Database migrations
+- `docker-compose.yaml` - Production stack; `docker-compose.dev.yaml` - local dev infra
+- `backend/src/main/resources/application.yaml` - Main configuration
+- `backend/src/main/resources/db/migration/` - Database migrations

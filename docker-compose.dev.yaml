@@ -1,0 +1,36 @@
+# Local development stack: only the infrastructure the backend needs.
+# Usage:
+#   docker compose -f docker-compose.dev.yaml up -d
+#   cd backend && ./mvnw quarkus:dev
+services:
+  smart-home-db:
+    image: postgres:17-alpine
+    container_name: smart-home-db-dev
+    environment:
+      - POSTGRES_USER=smarthome
+      - POSTGRES_PASSWORD=smarthome
+      - POSTGRES_DB=smarthome
+    ports:
+      # 5433 on the host to avoid clashing with other local postgres instances
+      - "5433:5432"
+
+  influxdb:
+    image: influxdb:2-alpine
+    container_name: influxdb-dev
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=dev
+      - DOCKER_INFLUXDB_INIT_PASSWORD=dev-password
+      - DOCKER_INFLUXDB_INIT_ORG=smart-home
+      - DOCKER_INFLUXDB_INIT_BUCKET=telemetry
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=dev-token
+    ports:
+      - "8086:8086"
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: mqtt-broker-dev
+    volumes:
+      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    ports:
+      - "1883:1883"

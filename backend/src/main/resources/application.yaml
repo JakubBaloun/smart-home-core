@@ -1,0 +1,114 @@
+# --- Shared configuration (all profiles) ---
+quarkus:
+  http:
+    port: 8080
+  log:
+    level: INFO
+    console:
+      format: "%d{HH:mm:ss} %-5p [%c{2.}] (%t) %s%e%n"
+
+  # PostgreSQL (device registry). Connection URLs/credentials come from
+  # QUARKUS_DATASOURCE_* environment variables in production (docker-compose).
+  datasource:
+    db-kind: postgresql
+
+  flyway:
+    migrate-at-start: ${QUARKUS_FLYWAY_MIGRATE_AT_START:true}
+    locations: db/migration
+    baseline-on-migrate: true
+
+# InfluxDB (time-series telemetry)
+influxdb:
+  url: ${INFLUXDB_URL}
+  token: ${INFLUXDB_TOKEN}
+  org: ${INFLUXDB_ORG}
+  bucket: ${INFLUXDB_BUCKET}
+
+# Automation rules (device names = Zigbee2MQTT friendly names)
+automation:
+  night-mode:
+    enabled: true
+    # lights: [hallway_light, living_room_light]
+  door-opened-lights:
+    enabled: true
+    door-sensor: front_door_sensor
+    lights:
+      - hallway_light
+  temperature-alert:
+    enabled: true
+    # device: temp        # omit to watch every device reporting temperature
+    threshold: 30.0
+
+# Reactive Messaging (MQTT / Zigbee2MQTT)
+mp:
+  messaging:
+    connector:
+      smallrye-mqtt:
+        host: ${MQTT_HOST:mqtt-broker}
+        port: ${MQTT_PORT:1883}
+        max-message-size: 1048576
+        reconnect-attempts: -1
+        reconnect-interval-seconds: 5
+        keep-alive-seconds: 60
+        auto-keep-alive: true
+    incoming:
+      # Full device list, published (retained) by Z2M on startup and on changes
+      z2m-devices:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/bridge/devices
+        qos: 1
+        client-id: smart-home-core-devices
+        failure-strategy: ignore
+
+      # Bridge online/offline state
+      z2m-bridge:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/bridge/state
+        qos: 0
+        client-id: smart-home-core-bridge
+        failure-strategy: ignore
+
+      # Per-device state/telemetry (zigbee2mqtt/<friendly_name>)
+      z2m-telemetry:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/+
+        qos: 0
+        client-id: smart-home-core-telemetry
+        failure-strategy: ignore
+
+      # Per-device availability (requires the Z2M 'availability' feature)
+      z2m-availability:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/+/availability
+        qos: 1
+        client-id: smart-home-core-avail
+        failure-strategy: ignore
+
+    outgoing:
+      # Commands to devices; actual topic (zigbee2mqtt/<name>/set) is set per message
+      z2m-command:
+        connector: smallrye-mqtt
+        topic: zigbee2mqtt/command
+        qos: 1
+        client-id: smart-home-core-command
+
+# --- Dev profile: works out of the box with docker-compose.dev.yaml ---
+"%dev":
+  quarkus:
+    datasource:
+      username: ${DB_USERNAME:smarthome}
+      password: ${DB_PASSWORD:smarthome}
+      jdbc:
+        url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5433/smarthome}
+      reactive:
+        url: ${DB_REACTIVE_URL:postgresql://localhost:5433/smarthome}
+  influxdb:
+    url: ${INFLUXDB_URL:http://localhost:8086}
+    token: ${INFLUXDB_TOKEN:dev-token}
+    org: ${INFLUXDB_ORG:smart-home}
+    bucket: ${INFLUXDB_BUCKET:telemetry}
+  mp:
+    messaging:
+      connector:
+        smallrye-mqtt:
+          host: ${MQTT_HOST:localhost}

@@ -17,12 +17,12 @@ Tests mirror production structure:
 
 ```
 src/
-├── main/java/org/acme/device/
+├── main/java/io/smarthome/core/device/
 │   ├── Device.java
 │   ├── repository/DeviceRepository.java
 │   ├── service/DeviceService.java
 │   └── resource/DeviceResource.java
-└── test/java/org/acme/device/
+└── test/java/io/smarthome/core/device/
     ├── DeviceTest.java                    # Unit tests (various aspects)
     ├── DeviceIT.java                      # Integration tests
     ├── repository/DeviceRepositoryTest.java

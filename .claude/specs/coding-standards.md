@@ -149,7 +149,7 @@ public interface DeviceMapper {
 Feature-based packages with layered structure:
 
 ```
-org.acme.device/
+io.smarthome.core.device/
   Device.java              # Entity (model layer)
   DeviceType.java          # Enums, value objects
   repository/

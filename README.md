@@ -1,80 +1,100 @@
 # smart-home-core
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+IoT smart home platform for a Raspberry Pi 5. A Quarkus (reactive) backend and a React frontend
+control Zigbee devices through Zigbee2MQTT and MQTT, store the device registry in PostgreSQL,
+and write sensor telemetry to InfluxDB.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## Repository layout
 
-## Running the application in dev mode
-
-You can run your application in dev mode that enables live coding using:
-
-```shell script
-./mvnw quarkus:dev
+```
+backend/    Quarkus application (Java 25, Maven)
+frontend/   React + Vite dashboard (served by nginx in production)
+infra/      Infrastructure config (mosquitto)
+bruno/      Bruno API collection for the REST API
+docker-compose.yaml       Production stack (runs on the Pi)
+docker-compose.dev.yaml   Local dev infrastructure (postgres, influxdb, mosquitto)
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+## Architecture
 
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
+```
+Zigbee devices ── Zigbee2MQTT ── Mosquitto (MQTT) ── backend ──┬── PostgreSQL (device registry)
+                                                               └── InfluxDB   (telemetry)
+frontend (nginx) ── /api/* ──> backend REST API
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+- **Device discovery:** Z2M publishes the retained device list on `zigbee2mqtt/bridge/devices`;
+  the backend syncs it into PostgreSQL.
+- **Telemetry:** per-device state on `zigbee2mqtt/<friendly_name>` is written to InfluxDB
+  (numeric fields are coerced to double to avoid Influx field-type conflicts).
+- **Availability:** `zigbee2mqtt/<friendly_name>/availability` updates device availability.
+  This requires the Zigbee2MQTT [availability feature](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html)
+  to be enabled; without it devices keep the availability from the last device-list sync.
+- **Bridge state:** `zigbee2mqtt/bridge/state` feeds a readiness health check (`/q/health`).
+- **Commands:** `POST /api/devices/{id}/command` publishes to `zigbee2mqtt/<friendly_name>/set`.
+- **Automation rules:** Java rules configured via `application.yaml` (`automation.*`):
+  `night-mode`, `door-opened-lights`, `temperature-alert`.
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+## Local development
 
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/smart-home-core-1.0.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## MQTT Testing
-
-Requires `mosquitto` CLI tools (`brew install mosquitto` on macOS).
+Start the local infrastructure (PostgreSQL on host port **5433**, InfluxDB on 8086, Mosquitto on 1883):
 
 ```bash
-# Publish a bridge state message
-mosquitto_pub -h raspberry.local -t zigbee2mqtt/bridge/state -m '{"state":"online"}'
-
-# Subscribe to all Zigbee2MQTT topics (useful for debugging)
-mosquitto_sub -h raspberry.local -t 'zigbee2mqtt/#' -v
+docker compose -f docker-compose.dev.yaml up -d
 ```
 
-## Related Guides
+Run the backend in dev mode (hot reload, sensible localhost defaults — no env vars needed):
 
-- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Mutiny ([guide](https://quarkus.io/guides/mutiny-primer)): Write reactive applications with the modern Reactive Programming library Mutiny
+```bash
+cd backend && ./mvnw quarkus:dev
+```
 
-## Provided Code
+Run the frontend dev server (proxies `/api` to `localhost:8080`):
 
-### REST
+```bash
+cd frontend && npm install && npm run dev
+```
 
-Easily start your REST Web Services
+Simulate Zigbee2MQTT with the mosquitto container:
 
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+```bash
+# Publish a fake device list (retained, as Z2M does)
+docker exec mqtt-broker-dev mosquitto_pub -t zigbee2mqtt/bridge/devices -r \
+  -m '[{"ieee_address":"0x01","friendly_name":"temp","type":"EndDevice","definition":{"description":"Temperature and humidity sensor","model":"WSDCGQ11LM","vendor":"Aqara"}}]'
+
+# Publish telemetry
+docker exec mqtt-broker-dev mosquitto_pub -t zigbee2mqtt/temp -m '{"temperature":25.5,"humidity":40}'
+
+# Watch everything on the bus
+docker exec mqtt-broker-dev mosquitto_sub -v -t 'zigbee2mqtt/#'
+```
+
+## Build & test
+
+```bash
+cd backend && ./mvnw clean package          # backend build + unit tests
+cd backend && ./mvnw verify -DskipITs=false # incl. integration tests
+cd frontend && npm test && npm run build    # frontend tests + production build
+```
+
+## Deployment
+
+Pushing to `main` triggers `.github/workflows/deploy.yml` on a self-hosted runner on the Pi:
+backend and frontend are built and tested, Docker images are built from `backend/` and
+`frontend/`, and `docker compose up -d` restarts the production stack. There is no staging
+environment — a push to `main` goes straight to production.
+
+Production configuration (database credentials, Influx token, etc.) comes from
+`/home/jakub/.env` on the Pi, referenced by `docker-compose.yaml`.
+
+### Note: existing InfluxDB data after the telemetry-type fix
+
+Telemetry fields are now always written as floats. If the production bucket already contains
+integer-typed fields from before the fix, writes will keep failing with a field-type conflict
+until the current shard rolls over. Since only single stray points exist, the simplest fix is
+to clear the bucket once after deploying:
+
+```bash
+docker exec influxdb influx delete --bucket telemetry --org smart-home \
+  --start 1970-01-01T00:00:00Z --stop $(date -u +%Y-%m-%dT%H:%M:%SZ)
+```

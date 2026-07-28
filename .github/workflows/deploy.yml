@@ -14,11 +14,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Tests and Maven Build
-        run: mvn clean package
+      - name: Backend tests and build
+        working-directory: backend
+        run: ./mvnw clean package
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Frontend tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
 
       - name: Docker build and deploy
         run: |
-          docker build -t smart-home-app:latest .
+          docker build -t smart-home-app:latest ./backend
           docker build -t smart-home-frontend:latest ./frontend
           docker compose --env-file /home/jakub/.env up -d
