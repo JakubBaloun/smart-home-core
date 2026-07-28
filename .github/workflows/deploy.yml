@@ -20,4 +20,5 @@ jobs:
       - name: Docker build and deploy
         run: |
           docker build -t smart-home-app:latest .
+          docker build -t smart-home-frontend:latest ./frontend
           docker compose --env-file /home/jakub/.env up -d

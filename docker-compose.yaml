@@ -47,8 +47,6 @@ services:
       - smart-home-db
       - influxdb
       - mqtt-broker
-    ports:
-      - "8080:8080"
     environment:
       - QUARKUS_DATASOURCE_JDBC_URL=${DB_JDBC_URL}
       - QUARKUS_DATASOURCE_REACTIVE_URL=${DB_REACTIVE_URL}
@@ -61,6 +59,15 @@ services:
       - INFLUXDB_BUCKET=telemetry
       - MQTT_HOST=mqtt-broker
       - MQTT_PORT=1883
+
+  smart-home-frontend:
+    image: smart-home-frontend:latest
+    container_name: smart-home-frontend
+    restart: always
+    depends_on:
+      - smart-home-app
+    ports:
+      - "80:80"
 
   mqtt-broker:
     image: eclipse-mosquitto:2

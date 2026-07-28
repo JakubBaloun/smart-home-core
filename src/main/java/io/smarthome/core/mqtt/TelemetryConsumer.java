@@ -6,13 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.logging.Log;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.reactive.messaging.mqtt.MqttMessageMetadata;
+import io.smarthome.core.telemetry.event.TelemetryReceivedEvent;
 import io.smarthome.core.telemetry.service.TelemetryService;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -21,7 +24,7 @@ import java.util.stream.Collectors;
 public class TelemetryConsumer {
 
     public static final Set<String> KNOWN_FIELDS = Set.of(
-            "temperature", "humidity", "battery", "power", "voltage", "energy", "linkquality"
+            "temperature", "humidity", "battery", "power", "voltage", "energy", "linkquality", "contact"
     );
 
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
@@ -31,6 +34,9 @@ public class TelemetryConsumer {
 
     @Inject
     TelemetryService telemetryService;
+
+    @Inject
+    Event<TelemetryReceivedEvent> telemetryEventBus;
 
     @Incoming("z2m-telemetry")
     public Uni<Void> consume(Message<byte[]> message) {
@@ -66,6 +72,7 @@ public class TelemetryConsumer {
         }
 
         return telemetryService.writeTelemetry(deviceName, "sensor_data", fields)
+                .invoke(() -> telemetryEventBus.fire(new TelemetryReceivedEvent(deviceName, fields, Instant.now())))
                 .onFailure().invoke(e -> Log.errorf("Failed to write telemetry from %s: %s", deviceName, e.getMessage()))
                 .onFailure().recoverWithNull()
                 .chain(() -> Uni.createFrom().completionStage(message.ack()))

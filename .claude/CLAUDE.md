@@ -2,9 +2,7 @@
 
 ## Critical Rules
 
-- **NEVER create pull requests** - Only prepare code changes
-- **NEVER run git push commands** - Only commit locally when explicitly asked
-- **ONLY commit when explicitly asked** - Do not commit unless user requests
+- **ONLY commit and push when explicitly asked** - Do not commit unless user requests
 
 ## Project Overview
 
@@ -22,6 +20,7 @@ IoT smart home platform running on Raspberry Pi 5, built with Quarkus (reactive 
 ## Quick Reference
 
 ### Tech Stack Summary
+
 - **Language:** Java 25 with Quarkus 3.30.x (reactive)
 - **Database:** PostgreSQL 17 (Hibernate Reactive + Panache)
 - **Messaging:** MQTT (Mosquitto + Zigbee2MQTT)
@@ -29,6 +28,7 @@ IoT smart home platform running on Raspberry Pi 5, built with Quarkus (reactive 
 - **Build:** Maven wrapper (`./mvnw`)
 
 ### Common Commands
+
 ```bash
 ./mvnw clean package                    # Build + run unit tests
 ./mvnw verify -DskipITs=false           # Unit + integration tests
@@ -37,11 +37,13 @@ docker compose up -d                    # Start all services
 ```
 
 ### Configuration
+
 - **YAML only** - Never `.properties` files
 - `application.yaml` - Main config (with `%dev`, `%test`, `%prod` profiles)
 - Flyway migrations: `src/main/resources/db/migration/V{version}__{Description}.sql`
 
 ### Architecture Pattern
+
 - **Feature-based packages:** `device/`, `telemetry/`, `automation/`, `mqtt/`
 - **Layered within features:** `Entity.java` → `repository/` → `service/` → `resource/`
 - **Reactive first:** Use `Uni<T>`/`Multi<T>` return types
@@ -51,35 +53,39 @@ docker compose up -d                    # Start all services
 
 For comprehensive patterns and standards, see `.claude/specs/`:
 
-| Spec | Contents |
-|------|----------|
-| `coding-standards.md` | Java style, imports, JavaDoc, Flyway |
+| Spec                   | Contents                              |
+| ---------------------- | ------------------------------------- |
+| `coding-standards.md`  | Java style, imports, JavaDoc, Flyway  |
 | `reactive-patterns.md` | Mutiny patterns, reactive composition |
-| `mqtt-patterns.md` | MQTT integration, Zigbee2MQTT |
-| `testing-patterns.md` | Unit/integration tests, REST Assured |
-| `git-workflow.md` | Commit format, PR rules |
+| `mqtt-patterns.md`     | MQTT integration, Zigbee2MQTT         |
+| `testing-patterns.md`  | Unit/integration tests, REST Assured  |
+| `git-workflow.md`      | Commit format, PR rules               |
 
 ## Critical Patterns (Quick Reference)
 
 ### Reactive Patterns
+
 - Return `Uni<T>` for single values, `Multi<T>` for streams
 - Use `.chain()` for sequential operations
 - Use `.invoke()` for side effects (logging)
 - Never block reactive chains
 
 ### Repository Pattern
+
 - Custom `@ApplicationScoped` repositories
 - Inject Hibernate Reactive `Session`
 - Use `session.find()`, `session.persist()`, `session.createQuery()`
 - Return `Uni<T>` or `Multi<T>`
 
 ### Testing Pattern
+
 - Unit test: `@QuarkusTest`, name `*Test.java`
 - Integration test: `@QuarkusIntegrationTest`, name `*IT.java`
 - Use REST Assured: `given().when().then()` style
 - Integration tests skipped by default (`-DskipITs=false` to run)
 
 ### Database Pattern
+
 - Entities extend `PanacheEntityBase` with explicit `Long id`
 - All schema changes via Flyway migrations
 - Two datasource configs: JDBC (Flyway) + Reactive (Hibernate)
