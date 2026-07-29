@@ -1,7 +1,94 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/familjen-grotesk';
+@import '@fontsource-variable/spline-sans-mono';
 
-:root {
+/*
+ * Nexus design tokens.
+ *
+ * Themes define the same set of semantic custom properties; components only
+ * ever use the semantic Tailwind utilities mapped below (bg-surface, text-ink,
+ * border-line, ...). Adding a theme = adding one [data-theme] block here.
+ * See frontend/DESIGN.md.
+ */
+
+[data-theme='dark'] {
   color-scheme: dark;
+
+  --surface-sunken: #100f0e;
+  --surface: #161513;
+  --surface-raised: #201e1b;
+  --overlay: #2a2723;
+
+  --line: #35322d;
+  --line-strong: #4a463f;
+
+  --ink: #ede8e0;
+  --ink-muted: #a8a199;
+  --ink-faint: #6e6961;
+
+  --accent: #e0a458;
+  --accent-strong: #edb56e;
+  --accent-ink: #221604;
+
+  --ok: #84a98c;
+  --cool: #82aec4;
+  --danger: #d0705f;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --surface-sunken: #dcd9d2;
+  --surface: #e9e7e2;
+  --surface-raised: #f4f3ef;
+  --overlay: #fbfaf7;
+
+  --line: #cfcbc2;
+  --line-strong: #aca698;
+
+  --ink: #211f1c;
+  --ink-muted: #5d5a53;
+  --ink-faint: #8b877e;
+
+  --accent: #b97f35;
+  --accent-strong: #a06a24;
+  --accent-ink: #fdf6ec;
+
+  --ok: #55795e;
+  --cool: #40708b;
+  --danger: #a93d33;
+}
+
+@theme {
+  /* Wipe Tailwind's default palette so only semantic tokens exist. */
+  --color-*: initial;
+
+  --font-sans:
+    system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'Familjen Grotesk Variable', var(--font-sans);
+  --font-mono: 'Spline Sans Mono Variable', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+}
+
+@theme inline {
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-overlay: var(--overlay);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-ok: var(--ok);
+  --color-cool: var(--cool);
+  --color-danger: var(--danger);
 }
 
 html,
@@ -9,13 +96,17 @@ body,
 #root {
   height: 100%;
   margin: 0;
-  background-color: #0b0d12;
-  color: #e5e7eb;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
   font-size: 18px;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+}
+
+body {
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 * {
