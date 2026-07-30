@@ -1,0 +1,50 @@
+name: Python backend CI
+on:
+  pull_request:
+    paths: [ 'backend-python/**', '.github/workflows/python-ci.yml' ]
+  workflow_dispatch:
+
+# Pull requests only. Pushes to main are covered by deploy.yml, which runs the
+# same tests as a gate before deploying.
+jobs:
+  test:
+    runs-on: self-hosted
+    env:
+      NETWORK: smart-home-py-pr
+      DB: smart-home-py-pr-db
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start test database
+        run: |
+          docker rm -f "$DB" || true
+          docker network create "$NETWORK" || true
+          docker run -d --name "$DB" --network "$NETWORK" \
+            -e POSTGRES_USER=smarthome \
+            -e POSTGRES_PASSWORD=smarthome \
+            -e POSTGRES_DB=smarthome_py_test \
+            postgres:17
+          for _ in $(seq 1 30); do
+            docker exec "$DB" pg_isready -U smarthome && exit 0
+            sleep 2
+          done
+          echo "postgres did not become ready" && exit 1
+
+      - name: Build test image
+        working-directory: backend-python
+        run: docker build --target test -t smart-home-py:pr .
+
+      # The runtime image ships without tests/, so mount the checkout over /app.
+      - name: Run tests
+        run: |
+          docker run --rm --network "$NETWORK" \
+            -v "$GITHUB_WORKSPACE/backend-python:/app" \
+            -e TEST_DB_URL="postgresql+psycopg://smarthome:smarthome@$DB:5432/smarthome_py_test" \
+            smart-home-py:pr python -m pytest -q
+
+      - name: Clean up
+        if: always()
+        run: |
+          docker rm -f "$DB" || true
+          docker network rm "$NETWORK" || true

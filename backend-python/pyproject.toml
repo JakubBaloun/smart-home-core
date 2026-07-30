@@ -1,0 +1,30 @@
+[project]
+name = "smart-home-core-python"
+version = "1.0.0"
+description = "Python/FastAPI port of the Quarkus smart-home-core backend"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    "sqlalchemy>=2.0.36",
+    "psycopg[binary]>=3.2",
+    "paho-mqtt>=2.1",
+    "influxdb-client>=1.48",
+    "apscheduler>=3.11,<4",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.3",
+    "httpx>=0.28",
+    "testcontainers[postgres]>=4.9",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
