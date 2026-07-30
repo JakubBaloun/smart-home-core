@@ -29,8 +29,15 @@ jobs:
       NETWORK: smart-home-py-ci
       DB: smart-home-py-ci-db
     steps:
+      # Both must run before checkout: checkout deletes the workspace, and it
+      # runs as the runner user, which cannot remove root-owned files.
+      # The Python caches are root-owned because the test container writes them
+      # into the mounted checkout; the test step now suppresses them, so this is
+      # only here to recover workspaces polluted before that fix.
       - name: Clean workspace
-        run: sudo rm -rf mosquitto zigbee2mqtt
+        run: |
+          sudo rm -rf mosquitto zigbee2mqtt
+          sudo find . -name __pycache__ -o -name .pytest_cache | xargs -r sudo rm -rf
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -61,7 +68,8 @@ jobs:
           docker run --rm --network "$NETWORK" \
             -v "$GITHUB_WORKSPACE/backend-python:/app" \
             -e TEST_DB_URL="postgresql+psycopg://smarthome:smarthome@$DB:5432/smarthome_py_test" \
-            smart-home-py:test python -m pytest -q
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            smart-home-py:test python -m pytest -q -p no:cacheprovider
 
       - name: Stop test database
         if: always()

@@ -13,6 +13,11 @@ jobs:
       NETWORK: smart-home-py-pr
       DB: smart-home-py-pr-db
     steps:
+      # Same self-hosted runner and the same workspace as deploy.yml, so this
+      # has to survive root-owned caches left by an older run too.
+      - name: Clean workspace
+        run: sudo find . -name __pycache__ -o -name .pytest_cache | xargs -r sudo rm -rf
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -41,7 +46,8 @@ jobs:
           docker run --rm --network "$NETWORK" \
             -v "$GITHUB_WORKSPACE/backend-python:/app" \
             -e TEST_DB_URL="postgresql+psycopg://smarthome:smarthome@$DB:5432/smarthome_py_test" \
-            smart-home-py:pr python -m pytest -q
+            -e PYTHONDONTWRITEBYTECODE=1 \
+            smart-home-py:pr python -m pytest -q -p no:cacheprovider
 
       - name: Clean up
         if: always()
