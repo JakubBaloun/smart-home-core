@@ -83,6 +83,15 @@ That is what gives it the full screen with no nav rail and no app header. New ki
 screens follow the same pattern: a separate route array, spread as a sibling of the `AppShell`
 entry — never a manifest with the chrome hidden by CSS.
 
+No shared navigation means no browser chrome either: the tablet runs `chromium --kiosk`, with no
+address bar and no back button. So every kiosk *entry* screen must carry exactly one deliberate
+way out — `CookPickerPage` links back to `/`, `CookRecipeDetailPage` links back to `/cook`. A
+single small link in the top-left, not a rail.
+
+Screens in the middle of a task are the exception: `CookStepsPage` keeps zero chrome on purpose,
+so a mistimed tap cannot drop the user out of a step mid-cook. Its only way back is the explicit
+`Recipe list` control in `CookNav`. The rule is *prevent accidental exit*, not *prevent exit*.
+
 ## Colors and tokens
 
 Colors are CSS variables in `src/index.css`, defined once per theme in `[data-theme='dark']`

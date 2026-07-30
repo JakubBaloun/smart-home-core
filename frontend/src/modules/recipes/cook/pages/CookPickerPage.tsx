@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { usePolling } from '@/hooks/usePolling'
 import { Loading } from '@/ui/Loading'
+import { IconHome } from '@/ui/icons'
 import { getRecipes } from '../../api/recipes'
 import { getTags } from '../../api/tags'
 import { SearchBox } from '../../components/SearchBox'
@@ -29,7 +31,15 @@ export function CookPickerPage() {
 
   return (
     <div className="h-full overflow-y-auto p-8">
-      <h1 className="mb-6 font-display text-4xl font-semibold tracking-tight text-ink">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1 text-lg text-ink-muted transition hover:text-ink"
+      >
+        <IconHome className="size-5" />
+        Dashboard
+      </Link>
+
+      <h1 className="mt-4 mb-6 font-display text-4xl font-semibold tracking-tight text-ink">
         What are we cooking?
       </h1>
 
