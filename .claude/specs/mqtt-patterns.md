@@ -1,412 +1,172 @@
 # MQTT Patterns
 
-> MQTT integration patterns for Smart Home Core with Eclipse Mosquitto and Zigbee2MQTT.
+> How `backend-python/app/mqtt/` actually integrates with Eclipse Mosquitto and Zigbee2MQTT.
+> SmallRye Reactive Messaging is gone; this is plain paho-mqtt.
 
-## Architecture Overview
-
-Smart Home Core integrates with MQTT for device communication:
+## Topology
 
 ```
-┌─────────────────┐     MQTT      ┌──────────────┐
-│ Zigbee Devices  │◄─────────────►│ Zigbee2MQTT  │
-└─────────────────┘                └──────┬───────┘
-                                          │ MQTT
-                     ┌────────────────────┼──────────┐
-                     │                    │          │
-                ┌────▼────┐         ┌────▼──────┐   │
-                │ Mosquitto│         │ Smart Home │   │
-                │  Broker  │◄───────►│    Core   │   │
-                └──────────┘         └───────────┘   │
-                                           │ MQTT    │
-                                           └─────────┘
+Zigbee devices ──Zigbee──▶ Zigbee2MQTT ──MQTT──▶ Mosquitto ──MQTT──▶ backend-python
+                                                     ▲                    │
+                                                     └────── commands ────┘
 ```
 
-**Key Components:**
-- **Eclipse Mosquitto** - MQTT broker
-- **Zigbee2MQTT** - Zigbee to MQTT bridge
-- **SmallRye Reactive Messaging** - Quarkus MQTT integration
+Quarkus opened **five** SmallRye channels and therefore five broker connections. The port uses
+**one** paho connection with `message_callback_add` per topic filter. The client id is
+`smart-home-py` (`MQTT_CLIENT_ID`), deliberately different from the Quarkus `smart-home-core-*`
+ids so both backends could subscribe during parity checks.
 
-## Configuration
+## Subscriptions
 
-### MQTT Connection (application.yaml)
+Declared once in `mqtt/client.py` and nowhere else:
 
-```yaml
-# MQTT Broker connection
-mqtt:
-  broker-url: ${MQTT_BROKER_URL:tcp://localhost:1883}
-  client-id: smart-home-core
-  username: ${MQTT_USERNAME:}
-  password: ${MQTT_PASSWORD:}
-
-# SmallRye Reactive Messaging configuration
-mp:
-  messaging:
-    incoming:
-      zigbee-devices:
-        connector: smallrye-mqtt
-        host: ${MQTT_BROKER_URL:tcp://localhost:1883}
-        client-id: smart-home-consumer
-        topic: zigbee2mqtt/#
-
-    outgoing:
-      zigbee-commands:
-        connector: smallrye-mqtt
-        host: ${MQTT_BROKER_URL:tcp://localhost:1883}
-        client-id: smart-home-producer
-        topic: zigbee2mqtt/[device]/set
+```python
+SUBSCRIPTIONS: list[tuple[str, int, Callable[[str, bytes], None]]] = [
+    ("zigbee2mqtt/bridge/devices", 1, consumers.consume_devices),
+    ("zigbee2mqtt/bridge/state",   0, consumers.consume_bridge_state),
+    ("zigbee2mqtt/+",              0, consumers.consume_telemetry),
+    ("zigbee2mqtt/+/availability", 1, consumers.consume_availability),
+]
 ```
 
-## Consuming Messages
+- The QoS per topic is inherited from the corresponding Quarkus channel — keep it
+- Subscriptions are re-established in `_on_connect`, **not** once at startup. A broker restart
+  would otherwise leave the client connected but silently un-subscribed.
+- `connect_async` + `loop_start()`, with `reconnect_delay_set(min=5, max=5)`. There is no
+  hand-rolled reconnect loop; paho owns it.
+- `MQTT_ENABLED=false` skips the connection entirely (used by the test suite)
 
-### Basic Consumer Pattern
+Adding a topic means adding a tuple to `SUBSCRIPTIONS` and a consumer function. There is no
+annotation-based registration to forget.
 
-```java
-@ApplicationScoped
-public class Zigbee2MqttConsumer {
+## Topic contract (Zigbee2MQTT)
 
-    @Inject
-    DeviceService deviceService;
+| Topic                                  | Direction | Purpose                                          |
+| -------------------------------------- | --------- | ------------------------------------------------ |
+| `zigbee2mqtt/bridge/devices` (retained) | in        | Full device list → sync into PostgreSQL          |
+| `zigbee2mqtt/bridge/state`              | in        | Bridge online/offline → `BridgeStateHolder`, `/q/health` |
+| `zigbee2mqtt/<friendly_name>`           | in        | Telemetry → InfluxDB                             |
+| `zigbee2mqtt/<friendly_name>/availability` | in     | Device availability (needs the Z2M availability feature) |
+| `zigbee2mqtt/<friendly_name>/set`       | out       | Commands                                         |
 
-    @Incoming("zigbee-devices")
-    public Uni<Void> consumeDeviceMessage(Message<String> message) {
-        String topic = message.getMetadata(IncomingMqttMetadata.class)
-                .map(IncomingMqttMetadata::getTopic)
-                .orElse("unknown");
+`zigbee2mqtt/+` also matches `zigbee2mqtt/bridge/...`-adjacent traffic, so `consume_telemetry`
+explicitly skips topics containing `/bridge/`.
 
-        String payload = message.getPayload();
+## Consumer pattern
 
-        return processMessage(topic, payload)
-                .chain(() -> Uni.createFrom().completionStage(message.ack()))
-                .onFailure().invoke(err ->
-                    log.error("Failed to process MQTT message from topic: {}", topic, err)
-                );
-    }
+Every consumer has the same signature and the same failure posture:
 
-    private Uni<Void> processMessage(String topic, String payload) {
-        // Parse and process the message
-        if (topic.startsWith("zigbee2mqtt/bridge/")) {
-            return processBridgeMessage(topic, payload);
-        } else {
-            return processDeviceMessage(topic, payload);
-        }
-    }
-}
+```python
+def consume_x(topic: str, payload: bytes) -> None:
+    try:
+        ...
+    except Exception as e:
+        log.error("Failed to ...: %s", e)
 ```
 
-### Topic Filtering
+- Signature is always `(topic: str, payload: bytes) -> None` — decode explicitly with
+  `payload.decode("utf-8")`
+- **Consumers swallow their own exceptions.** This matches `failure-strategy: ignore` on every
+  Quarkus incoming channel: a failing message is dropped and the subscription survives. Never
+  let an exception escape into the paho network thread.
+- `_make_callback` in `client.py` is a second safety net that logs anything that still escapes
+- Consumers hold no state. Persistent state lives in `bridge_state_holder` or the database.
+- Consumers call **services**, never repositories
 
-```java
-@ApplicationScoped
-public class DeviceStateConsumer {
+### Telemetry filtering
 
-    @Incoming("zigbee-devices")
-    public Uni<Void> consumeStateUpdate(Message<String> message) {
-        String topic = extractTopic(message);
+`consume_telemetry` is the one with real logic, and the order matters:
 
-        // Filter: only process device state updates
-        if (!topic.matches("zigbee2mqtt/[^/]+") || topic.contains("bridge")) {
-            return Uni.createFrom().completionStage(message.ack());
-        }
+1. Skip `/bridge/` topics
+2. Derive the device name by stripping the `zigbee2mqtt/` prefix
+3. Parse JSON; a parse failure is a `warning`, not an error, and returns
+4. Reject non-object payloads
+5. Keep only keys in `KNOWN_FIELDS`; if nothing remains, return without writing
+6. Write to InfluxDB, then publish `TelemetryReceivedEvent` — **only after a successful write**,
+   so automation never reacts to data that was not stored
 
-        String deviceId = extractDeviceId(topic);
-        String payload = message.getPayload();
+`KNOWN_FIELDS` lives in `telemetry/fields.py`, not in the MQTT layer. In Quarkus the constant sat
+on `TelemetryConsumer` and `TelemetryResource` imported it; mirroring that literally would make
+the REST layer depend on the MQTT layer.
 
-        return deviceService.updateStateFromMqtt(deviceId, payload)
-                .chain(() -> Uni.createFrom().completionStage(message.ack()));
-    }
+### Availability ownership
 
-    private String extractDeviceId(String topic) {
-        return topic.replace("zigbee2mqtt/", "").split("/")[0];
-    }
-}
+`consume_availability` is the **only** writer of `device.available` / `device.last_seen`.
+`z2m_mapper.update_entity_from_payload` must never touch those two columns — device sync
+overwriting them would flap availability on every discovery message. This is a standing
+invariant, verified in both backends.
+
+Payload shape is handled by `mqtt/state_payload.is_online`, which accepts both Z2M 2.x JSON
+(`{"state":"online"}`) and the older bare `online`/`offline` string.
+
+## Publishing
+
+`mqtt/publisher.py` holds a single `MqttPublisher` whose paho client is injected by
+`client.start()`. Until then `publish()` raises, mirroring an unconnected SmallRye emitter.
+
+Application code does not use it directly — it goes through `device/command_service.py`:
+
+```python
+device_command_service.set_state(friendly_name, "ON")
+device_command_service.set_brightness(friendly_name, 200)
+device_command_service.set_color_temp(friendly_name, 370)
+device_command_service.send_raw_command(friendly_name, payload)
 ```
 
-## Publishing Messages
+- Topic is always `zigbee2mqtt/<friendly_name>/set`, QoS 1, `retain=False`
+- Payload is `json.dumps(payload, separators=(",", ":"))` — **compact separators are required**.
+  The verified wire format is exactly `{"state":"ON"}`, `{"brightness":200}`,
+  `{"color_temp":370}`, with no spaces.
+- `set_state` upper-cases the state
+- A publish failure is logged **and re-raised** (unlike consumers, which swallow)
 
-### Basic Producer Pattern
+Command dispatch from REST lives in `device/router.py::_route_command`: `setState`,
+`setBrightness`, `setColorTemp`, `raw`; anything else raises `BadRequestError`
+(`Unknown command: '<x>'`). A missing payload key raises
+`BadRequestError("payload must contain '<field>'")`. The device must be `available` or the
+router raises `DeviceUnavailableError` → 409.
 
-```java
-@ApplicationScoped
-public class DeviceCommandService {
+## Bridge state and health
 
-    @Inject
-    @Channel("zigbee-commands")
-    MqttPublisher<String> publisher;
+`BridgeStateHolder` tracks `UNKNOWN` / `ONLINE` / `OFFLINE` plus the last change timestamp.
+`/q/health` reproduces the SmallRye envelope and the `zigbee2mqtt-bridge` check byte-for-byte:
 
-    public Uni<Void> turnOnDevice(String deviceId) {
-        String topic = String.format("zigbee2mqtt/%s/set", deviceId);
-        String payload = """
-                {
-                  "state": "ON"
-                }
-                """;
-
-        return publisher.publish(topic, payload)
-                .invoke(() -> log.info("Sent ON command to device: {}", deviceId))
-                .onFailure().invoke(err ->
-                    log.error("Failed to send command to device: {}", deviceId, err)
-                );
-    }
-
-    public Uni<Void> setBrightness(String deviceId, int brightness) {
-        String topic = String.format("zigbee2mqtt/%s/set", deviceId);
-        String payload = String.format("""
-                {
-                  "brightness": %d
-                }
-                """, brightness);
-
-        return publisher.publish(topic, payload);
-    }
-}
-```
-
-### Custom Publisher with Topic Configuration
-
-```java
-@ApplicationScoped
-public class MqttPublisher<T> {
-
-    @Inject
-    @Channel("zigbee-commands")
-    Emitter<String> emitter;
-
-    public Uni<Void> publish(String topic, String payload) {
-        OutgoingMqttMetadata metadata = OutgoingMqttMetadata.builder()
-                .withTopic(topic)
-                .withQos(1)  // At least once delivery
-                .withRetain(false)
-                .build();
-
-        Message<String> message = Message.of(payload)
-                .addMetadata(metadata);
-
-        return Uni.createFrom().completionStage(
-                emitter.send(message)
-        );
-    }
-}
-```
-
-## Zigbee2MQTT Integration
-
-### Device Discovery
-
-Zigbee2MQTT publishes device info to `zigbee2mqtt/bridge/devices`:
-
-```java
-@ApplicationScoped
-public class DeviceDiscoveryConsumer {
-
-    @Inject
-    DeviceService deviceService;
-
-    @Incoming("zigbee-devices")
-    public Uni<Void> handleBridgeMessages(Message<String> message) {
-        String topic = extractTopic(message);
-
-        if (!topic.equals("zigbee2mqtt/bridge/devices")) {
-            return Uni.createFrom().completionStage(message.ack());
-        }
-
-        String payload = message.getPayload();
-
-        return parseDeviceList(payload)
-                .chain(devices -> Multi.createFrom().iterable(devices)
-                        .onItem().transformToUniAndMerge(deviceService::syncDevice)
-                        .collect().asList()
-                )
-                .replaceWithVoid()
-                .chain(() -> Uni.createFrom().completionStage(message.ack()));
-    }
-
-    private Uni<List<ZigbeeDevice>> parseDeviceList(String json) {
-        // Parse JSON array of devices
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            List<ZigbeeDevice> devices = mapper.readValue(
-                    json,
-                    new TypeReference<List<ZigbeeDevice>>() {}
-            );
-            return Uni.createFrom().item(devices);
-        } catch (Exception e) {
-            return Uni.createFrom().failure(e);
-        }
-    }
-}
-```
-
-### Device State Updates
-
-Zigbee2MQTT publishes state to `zigbee2mqtt/[device_id]`:
-
-```java
-public Uni<Void> handleDeviceState(String deviceId, String payload) {
-    return parseStateUpdate(payload)
-            .chain(state -> deviceService.updateState(deviceId, state))
-            .invoke(device -> log.info("Updated device state: {} -> {}", deviceId, device.getState()))
-            .replaceWithVoid();
-}
-
-private Uni<DeviceState> parseStateUpdate(String json) {
-    try {
-        ObjectMapper mapper = new ObjectMapper();
-        return Uni.createFrom().item(
-                mapper.readValue(json, DeviceState.class)
-        );
-    } catch (Exception e) {
-        return Uni.createFrom().failure(
-                new InvalidPayloadException("Failed to parse state: " + json, e)
-        );
-    }
-}
-```
-
-## Common MQTT Topics
-
-### Zigbee2MQTT Topics
-
-| Topic | Direction | Purpose |
-|-------|-----------|---------|
-| `zigbee2mqtt/bridge/state` | Subscribe | Bridge online/offline status |
-| `zigbee2mqtt/bridge/devices` | Subscribe | List of all paired devices |
-| `zigbee2mqtt/bridge/event` | Subscribe | Pairing events, device announcements |
-| `zigbee2mqtt/bridge/config` | Pub/Sub | Bridge configuration |
-| `zigbee2mqtt/[device]/set` | Publish | Send commands to device |
-| `zigbee2mqtt/[device]` | Subscribe | Receive device state updates |
-| `zigbee2mqtt/[device]/get` | Publish | Request current state |
-
-### Example Payloads
-
-**Device State (Subscribe):**
 ```json
-{
-  "battery": 100,
-  "linkquality": 120,
-  "state": "ON",
-  "brightness": 254,
-  "color_temp": 370,
-  "last_seen": "2026-02-11T15:30:00.000Z"
-}
+{"status": "UP", "checks": [{"name": "zigbee2mqtt-bridge", "status": "UP",
+ "data": {"state": "online", "lastChange": "..."}}]}
 ```
 
-**Device Command (Publish):**
-```json
-{
-  "state": "ON",
-  "brightness": 128,
-  "transition": 2
-}
-```
-
-## Error Handling
-
-### Connection Failures
-
-```java
-@ApplicationScoped
-public class MqttConnectionMonitor {
-
-    @Inject
-    Event<MqttDisconnectedEvent> disconnectEvent;
-
-    @Incoming("zigbee-devices")
-    public Uni<Void> monitorConnection(Message<String> message) {
-        return processMessage(message)
-                .onFailure(MqttConnectionException.class)
-                .invoke(err -> {
-                    log.error("MQTT connection lost", err);
-                    disconnectEvent.fire(new MqttDisconnectedEvent());
-                })
-                .onFailure(MqttConnectionException.class)
-                .recoverWithUni(() -> waitForReconnection());
-    }
-
-    private Uni<Void> waitForReconnection() {
-        return Uni.createFrom().voidItem()
-                .onItem().delayIt().by(Duration.ofSeconds(5))
-                .invoke(() -> log.info("Attempting MQTT reconnection..."));
-    }
-}
-```
-
-### Message Processing Failures
-
-```java
-@Incoming("zigbee-devices")
-public Uni<Void> consumeWithRetry(Message<String> message) {
-    return processMessage(message)
-            .onFailure().retry()
-            .withBackOff(Duration.ofSeconds(1), Duration.ofSeconds(10))
-            .atMost(3)
-            .chain(() -> Uni.createFrom().completionStage(message.ack()))
-            .onFailure().invoke(err -> {
-                log.error("Failed after retries, sending to DLQ", err);
-                // Send to dead letter queue or log for manual review
-            })
-            .onFailure().recoverWithUni(() ->
-                Uni.createFrom().completionStage(message.nack(new Exception("Processing failed")))
-            );
-}
-```
+- `UNKNOWN` stays **UP** so a quiet bridge does not block readiness at startup; only `OFFLINE`
+  is DOWN, and DOWN returns 503
+- The framework-supplied Quarkus checks (messaging liveness/readiness/startup, datasource) are
+  deliberately not reproduced — they describe Quarkus internals. The frontend does not consume
+  `/q/health`, so this has no parity impact.
 
 ## Testing MQTT
 
-### Mock MQTT Consumer
+- `MQTT_ENABLED=false` in `tests/conftest.py` — the suite never opens a broker connection
+- Consumers are tested by calling them directly with a topic and encoded payload:
+  `consumers.consume_devices("zigbee2mqtt/bridge/devices", json.dumps(payload).encode())`
+- The database is real; only the outbound edges are faked
+- Outgoing commands are captured by patching the publisher:
 
-```java
-@QuarkusTest
-class DeviceConsumerTest {
-
-    @Inject
-    DeviceService deviceService;
-
-    @Test
-    void shouldProcessDeviceStateUpdate() {
-        String payload = """
-                {
-                  "state": "ON",
-                  "brightness": 254
-                }
-                """;
-
-        // Test the processing logic directly
-        Uni<Void> result = processDeviceState("device-1", payload);
-
-        assertDoesNotThrow(() -> result.await().indefinitely());
-
-        // Verify device was updated
-        Device device = deviceService.getDevice(1L).await().indefinitely();
-        assertEquals("ON", device.getState());
-    }
-}
+```python
+monkeypatch.setattr(
+    "app.mqtt.publisher.mqtt_publisher.publish",
+    lambda topic, payload, qos=1, retain=False: sent.append((topic, payload)),
+)
 ```
 
-### Integration Tests with Testcontainers
+- InfluxDB is kept out with `monkeypatch.setattr(telemetry_service, "write_telemetry", ...)`
+- There is no Mosquitto testcontainer and no test of paho itself
 
-```java
-@QuarkusIntegrationTest
-@TestProfile(MqttTestProfile.class)
-class MqttIntegrationTest {
+## Local debugging
 
-    @Container
-    static GenericContainer<?> mosquitto = new GenericContainer<>("eclipse-mosquitto:2")
-            .withExposedPorts(1883);
-
-    @Test
-    void shouldReceiveMqttMessage() {
-        // Publish test message via Testcontainers
-        // Verify message is processed by application
-    }
-}
+```bash
+docker exec mqtt-broker-dev mosquitto_sub -v -t 'zigbee2mqtt/#'
+docker exec mqtt-broker-dev mosquitto_pub -t zigbee2mqtt/temp -m '{"temperature":25.5}'
 ```
 
-## Best Practices
-
-1. **Always acknowledge messages** - Use `message.ack()` after successful processing
-2. **Handle failures gracefully** - Use retry with backoff, then DLQ
-3. **Log MQTT activity** - Topic, payload preview, processing time
-4. **Use QoS appropriately** - QoS 1 for commands, QoS 0 for frequent telemetry
-5. **Validate payloads** - Parse and validate JSON before processing
-6. **Keep topics organized** - Follow Zigbee2MQTT conventions
-7. **Monitor connection health** - Implement reconnection logic
+**Never run two backends against the same broker** for longer than a parity check. They
+subscribe to the same topics, so telemetry lands in InfluxDB twice and automation rules fire
+twice, publishing duplicate commands to real devices.

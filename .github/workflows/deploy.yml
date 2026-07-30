@@ -2,6 +2,24 @@ name: Deploy to Pi 5
 on:
   push:
     branches: [ main ]
+    # Documentation-only pushes must not redeploy production. Everything listed
+    # here was checked against what actually reaches a running container:
+    #   * backend-python/Dockerfile COPYs only pyproject.toml, app/ and
+    #     schema.sql — its README.md never enters the image.
+    #   * frontend/Dockerfile does `COPY . .`, but nothing imports markdown and
+    #     the final nginx stage takes only dist/ + nginx.conf, so a .md edit
+    #     cannot change the runtime image.
+    # Deliberately NOT ignored: backend/** (it owns the Flyway migrations that
+    # docker-compose.yaml mounts), infra/**, bruno/**, and every workflow file.
+    # workflow_dispatch is unaffected by this filter, so a manual redeploy is
+    # always available.
+    paths-ignore:
+      - 'README.md'
+      - 'CLAUDE.md'
+      - '.claude/**'
+      - 'backend-python/README.md'
+      - 'frontend/README.md'
+      - 'frontend/DESIGN.md'
   workflow_dispatch:
 
 jobs:

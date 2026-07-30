@@ -5,7 +5,9 @@
 - **ONLY commit and push when explicitly asked** - Do not commit unless user requests
 - **Never run the production `docker-compose.yaml` on a dev machine without `-p <project>`** - it
   shares service names and the default project name with `docker-compose.dev.yaml` and will
-  recreate the dev containers, which have no volumes and therefore lose all their data
+  recreate the dev containers. The data itself now survives: the dev stack has its own named
+  volumes (`db_data_dev`, `influxdb_data_dev`), deliberately suffixed so they can never resolve
+  to the production `db_data` / `influxdb_data` in the same compose project.
 
 ## Project Overview
 
@@ -63,17 +65,18 @@ docker compose -f docker-compose.dev.yaml up -d  # Local infra (postgres:5433, i
 
 ## Detailed Specifications
 
-`.claude/specs/` currently documents the **Quarkus reference implementation**, not the running
-Python code. Use it when reading `backend/` as the spec; do not apply its Java/Mutiny patterns to
-`backend-python/`. (Worth rewriting for Python — not done yet.)
+`.claude/specs/` documents the **running Python code** in `backend-python/`. It describes what is
+actually there, not what would be ideal — follow it when writing code, and update it when the
+code changes. `reactive-patterns.md` was deleted rather than translated: the port is deliberately
+synchronous and had no Mutiny equivalent; `architecture-patterns.md` replaces it.
 
-| Spec                   | Contents                              |
-| ---------------------- | ------------------------------------- |
-| `coding-standards.md`  | Java style, imports, JavaDoc, Flyway  |
-| `reactive-patterns.md` | Mutiny patterns, reactive composition |
-| `mqtt-patterns.md`     | MQTT integration, Zigbee2MQTT         |
-| `testing-patterns.md`  | Unit/integration tests, REST Assured  |
-| `git-workflow.md`      | Commit format, PR rules               |
+| Spec                       | Contents                                                     |
+| -------------------------- | ------------------------------------------------------------ |
+| `coding-standards.md`      | Python style, typing, docstrings, package layout, Flyway      |
+| `architecture-patterns.md` | Sync architecture, layering, sessions, wiring, parity contract |
+| `mqtt-patterns.md`         | paho-mqtt, Zigbee2MQTT topics, consumers, commands            |
+| `testing-patterns.md`      | pytest, testcontainers, TestClient, monkeypatch               |
+| `git-workflow.md`          | Commit format, PR rules (language-agnostic)                   |
 
 `backend-python/README.md` is the authoritative port document: it carries the running log of
 ambiguities found in the Quarkus code and how each was resolved. Add to it rather than

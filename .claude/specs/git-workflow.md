@@ -1,6 +1,7 @@
 # Git Workflow
 
-> Git and PR rules for Smart Home Core development.
+> Git and PR rules for Smart Home Core development. Language-agnostic — unchanged by the move
+> from the Quarkus backend to `backend-python/`.
 
 ## Critical Rules
 
@@ -21,7 +22,7 @@ fix(mqtt): handle reconnection on broker disconnect
 docs(readme): update installation instructions
 refactor(device): extract mapper to separate class
 test(device): add integration tests for update endpoint
-chore(deps): upgrade Quarkus to 3.30.1
+chore(deps): upgrade FastAPI to 0.116
 ```
 
 ## Types
@@ -43,6 +44,7 @@ Common scopes for this project:
 
 - `device` - Device management feature
 - `telemetry` - Telemetry/sensor data feature
+- `recipe` - Recipes/tags feature (Kuchařka)
 - `automation` - Automation/rules feature
 - `mqtt` - MQTT integration
 - `zigbee` - Zigbee2MQTT integration

@@ -1,568 +1,206 @@
 # Testing Patterns
 
-> Testing conventions and patterns for Smart Home Core with Quarkus, JUnit 5, and REST Assured.
+> pytest conventions as they exist in `backend-python/tests/`. There is one suite — no unit /
+> integration split, no `*IT` equivalent, and nothing is skipped by default.
 
-## Test Types
+## Running
 
-| Type | Annotation | File Suffix | Scope |
-|------|-----------|-------------|-------|
-| Unit Test | `@QuarkusTest` | `*Test.java` | Single class/feature, mocked dependencies |
-| Integration Test | `@QuarkusIntegrationTest` | `*IT.java` | Full app, real database, Docker container |
+```bash
+cd backend-python
+pytest                                  # spins up postgres:17-alpine via testcontainers
+pytest tests/test_device_api.py         # one module
+pytest -k threshold                     # by name
+pytest -q                               # what CI runs
 
-**Integration tests are skipped by default.** Run with: `./mvnw verify -DskipITs=false`
-
-## Project Structure
-
-Tests mirror production structure:
-
-```
-src/
-├── main/java/io/smarthome/core/device/
-│   ├── Device.java
-│   ├── repository/DeviceRepository.java
-│   ├── service/DeviceService.java
-│   └── resource/DeviceResource.java
-└── test/java/io/smarthome/core/device/
-    ├── DeviceTest.java                    # Unit tests (various aspects)
-    ├── DeviceIT.java                      # Integration tests
-    ├── repository/DeviceRepositoryTest.java
-    ├── service/DeviceServiceTest.java
-    └── resource/DeviceResourceTest.java
+# Use an existing database instead of testcontainers (required inside Docker,
+# where Docker-in-Docker is not available):
+TEST_DB_URL=postgresql+psycopg://smarthome:smarthome@localhost:5433/smarthome_py_test pytest
 ```
 
-## Unit Tests
+`TEST_DB_URL` must point at a **throwaway** database — `conftest.py` drops and recreates the
+`public` schema.
 
-### Basic Test Structure
+Configuration is `[tool.pytest.ini_options]` in `pyproject.toml`: `testpaths = ["tests"]` and
+`filterwarnings = ["ignore::DeprecationWarning"]`. There is no `pytest.ini`, no coverage gate,
+and no custom markers.
 
-```java
-@QuarkusTest
-class DeviceServiceTest {
+## Layout
 
-    @Inject
-    DeviceService service;
+Test modules mirror the Quarkus test classes, not the Python package tree. Each starts with a
+docstring naming what it mirrors.
 
-    @InjectMock
-    DeviceRepository repository;
+| Module                       | Mirrors                                                     |
+| ---------------------------- | ----------------------------------------------------------- |
+| `test_device_api.py`         | `DeviceResourceTest`, `CommandResourceTest`                 |
+| `test_device_repository.py`  | `DeviceRepositoryTest`, `DeviceCommandServiceTest`          |
+| `test_recipe_api.py`         | `RecipeResourceTest`, `TagResourceTest`                     |
+| `test_telemetry_api.py`      | `TelemetryResourceTest`                                     |
+| `test_telemetry_service.py`  | `TelemetryServiceTest`                                      |
+| `test_mqtt_consumers.py`     | `DeviceDiscoveryConsumerTest`, `TelemetryConsumerTest`      |
+| `test_automation.py`         | `RuleEngineTest`, `RuleRegistryTest`, `RuleEventBridgeTest`, rule tests |
+| `test_z2m_mapper.py`         | `Z2MDeviceMapperTest`                                       |
+| `test_datetimes.py`          | (no Java equivalent — guards the Jackson fraction formats)  |
 
-    @Test
-    void shouldReturnDeviceWhenExists() {
-        // Given
-        Device device = Device.builder()
-                .id(1L)
-                .name("Test Device")
-                .ieeeAddress("0x00124b001f2e3a45")
-                .type(DeviceType.LIGHT)
-                .build();
+Plain `def test_...` functions. No test classes, no `unittest.TestCase`, no `assertEqual` —
+bare `assert`.
 
-        when(repository.findById(1L)).thenReturn(Uni.createFrom().item(device));
+## The database is never mocked
 
-        // When
-        Uni<Device> result = service.getDevice(1L);
+This is the strongest rule in the suite. `conftest.py` provides:
 
-        // Then
-        Device actual = result.await().indefinitely();
-        assertNotNull(actual);
-        assertEquals("Test Device", actual.getName());
-        assertEquals(DeviceType.LIGHT, actual.getType());
+1. `database_url` (session-scoped) — `TEST_DB_URL` if set, otherwise a `PostgresContainer`
+2. `_database` (session-scoped, autouse) — sets `DB_URL`, calls `get_settings.cache_clear()`,
+   drops and recreates `public`, executes `schema.sql`, then `db.init_engine(url)`
+3. `clean_tables` (function-scoped, autouse) — `TRUNCATE ... RESTART IDENTITY CASCADE` after
+   every test, so ids start at 1 and tests never see each other's rows
 
-        verify(repository).findById(1L);
+`schema.sql` is a verbatim snapshot of the Flyway result and is used **only** here. It is not a
+migration mechanism; when a Flyway migration is added in `backend/`, re-snapshot it.
+
+Do not introduce a mocked or in-memory session, and do not use SQLite.
+
+## HTTP tests
+
+`client` is a `fastapi.testclient.TestClient` used as a context manager, so the real `lifespan`
+runs — `verify_schema()`, the rule registry, the event-bus subscriptions. MQTT and the scheduler
+are off (see below).
+
+```python
+def test_get_device_not_found(client):
+    response = client.get("/api/devices/999999")
+    assert response.status_code == 404
+    assert response.json() == {
+        "title": "Not Found",
+        "detail": "Device with id '999999' not found",
+        "status": 404,
     }
-
-    @Test
-    void shouldThrowExceptionWhenDeviceNotFound() {
-        // Given
-        when(repository.findById(99L)).thenReturn(Uni.createFrom().nullItem());
-
-        // When
-        Uni<Device> result = service.getDevice(99L);
-
-        // Then
-        assertThrows(DeviceNotFoundException.class, () ->
-                result.await().indefinitely()
-        );
-    }
-}
 ```
 
-### Testing Reactive Code
+- Assert the **whole body** for error responses. The shape is a parity contract, so
+  `assert response.json()["title"] == ...` alone is too weak for the primary case.
+- Assert status codes literally: 200, 202 (commands), 204 (device update/delete, recipe delete),
+  400, 404, 409
+- Repeated query params use a list of tuples: `params=[("tag", "breakfast"), ("tag", "sweet")]`
+- Verify a mutation by reading it back through the API, not by querying the database
 
-```java
-@Test
-void shouldUpdateDeviceState() {
-    Device device = createTestDevice();
-    Device updated = Device.builder()
-            .id(1L)
-            .name("Test Device")
-            .state("ON")
-            .build();
+## Seeding
 
-    when(repository.findById(1L)).thenReturn(Uni.createFrom().item(device));
-    when(repository.update(any(Device.class))).thenReturn(Uni.createFrom().item(updated));
+Seed through the repository inside a `transaction()`, in a fixture, and return the id:
 
-    // Await in tests is acceptable
-    Device result = service.updateState(1L, "ON")
-            .await().indefinitely();
-
-    assertEquals("ON", result.getState());
-}
-
-@Test
-void shouldHandleFailureGracefully() {
-    when(repository.findById(1L))
-            .thenReturn(Uni.createFrom().failure(new RuntimeException("DB error")));
-
-    // Use AssertJ or assertThrows
-    assertThrows(RuntimeException.class, () ->
-            service.getDevice(1L).await().indefinitely()
-    );
-}
+```python
+@pytest.fixture
+def seeded_device_id() -> int:
+    device = Device(ieee_address="00:11:22:33:44:55", friendly_name="Living Room Sensor",
+                    type=DeviceType.SENSOR.value, available=True)
+    with transaction() as session:
+        device_repository.save(device, session)
+        session.flush()
+        return device.id
 ```
 
-## REST Endpoint Tests
+Recipes are seeded through the API instead — `create_recipe(client, VALID_RECIPE)` posts a
+module-level `VALID_RECIPE` dict, and `recipe(**overrides)` deep-copies it for variants. There
+are no builder classes; a dict plus `copy.deepcopy` is the pattern.
 
-### Using REST Assured
+## Faking the edges
 
-```java
-@QuarkusTest
-class DeviceResourceTest {
+Only the outbound integrations are faked, always with `monkeypatch`, never `unittest.mock`.
 
-    @InjectMock
-    DeviceService service;
+**MQTT publishing** — capture what would have been sent:
 
-    @InjectMock
-    DeviceMapper mapper;
-
-    @Test
-    void shouldReturnDeviceById() {
-        Device device = createTestDevice();
-        DeviceResponse response = new DeviceResponse(
-                1L, "Test Device", "0x001", DeviceType.LIGHT, "ON", "Living Room"
-        );
-
-        when(service.getDevice(1L)).thenReturn(Uni.createFrom().item(device));
-        when(mapper.toResponse(device)).thenReturn(response);
-
-        given()
-                .when().get("/devices/1")
-                .then()
-                .statusCode(200)
-                .body("id", equalTo(1))
-                .body("name", equalTo("Test Device"))
-                .body("type", equalTo("LIGHT"));
-    }
-
-    @Test
-    void shouldReturn404WhenDeviceNotFound() {
-        when(service.getDevice(99L))
-                .thenReturn(Uni.createFrom().failure(new DeviceNotFoundException(99L)));
-
-        given()
-                .when().get("/devices/99")
-                .then()
-                .statusCode(404);
-    }
-
-    @Test
-    void shouldCreateDevice() {
-        CreateDeviceRequest request = new CreateDeviceRequest(
-                "New Device", "0x002", DeviceType.SENSOR, "Kitchen"
-        );
-        Device device = createTestDevice();
-        DeviceResponse response = new DeviceResponse(
-                1L, "New Device", "0x002", DeviceType.SENSOR, null, "Kitchen"
-        );
-
-        when(service.createDevice(any())).thenReturn(Uni.createFrom().item(device));
-        when(mapper.toResponse(device)).thenReturn(response);
-
-        given()
-                .contentType("application/json")
-                .body(request)
-                .when().post("/devices")
-                .then()
-                .statusCode(201)
-                .body("name", equalTo("New Device"));
-    }
-
-    @Test
-    void shouldValidateRequestBody() {
-        given()
-                .contentType("application/json")
-                .body("{\"name\": \"\"}") // Invalid: empty name
-                .when().post("/devices")
-                .then()
-                .statusCode(400);
-    }
-}
+```python
+@pytest.fixture
+def published(monkeypatch) -> list[tuple[str, bytes]]:
+    sent: list[tuple[str, bytes]] = []
+    monkeypatch.setattr(
+        "app.mqtt.publisher.mqtt_publisher.publish",
+        lambda topic, payload, qos=1, retain=False: sent.append((topic, payload)),
+    )
+    return sent
 ```
 
-### Testing Query Parameters
+Assert the exact bytes where the wire format matters:
 
-```java
-@Test
-void shouldFilterDevicesByType() {
-    List<Device> devices = List.of(
-            createTestDevice(1L, DeviceType.LIGHT),
-            createTestDevice(2L, DeviceType.LIGHT)
-    );
-
-    when(service.findByType(DeviceType.LIGHT))
-            .thenReturn(Multi.createFrom().iterable(devices));
-
-    given()
-            .queryParam("type", "LIGHT")
-            .when().get("/devices")
-            .then()
-            .statusCode(200)
-            .body("$.size()", equalTo(2));
-}
+```python
+assert published == [("zigbee2mqtt/Living Room Sensor/set",
+                      json.dumps({"state": "ON"}, separators=(",", ":")).encode())]
 ```
 
-## Integration Tests
+**InfluxDB writes** — patch the service method:
 
-### Basic Integration Test
-
-```java
-@QuarkusIntegrationTest
-class DeviceResourceIT {
-
-    @Test
-    void shouldCreateAndRetrieveDevice() {
-        // Create device
-        CreateDeviceRequest request = new CreateDeviceRequest(
-                "Integration Test Device",
-                "0x00124b001f2e3a99",
-                DeviceType.LIGHT,
-                "Test Room"
-        );
-
-        String location = given()
-                .contentType("application/json")
-                .body(request)
-                .when().post("/devices")
-                .then()
-                .statusCode(201)
-                .extract().header("Location");
-
-        // Retrieve device
-        given()
-                .when().get(location)
-                .then()
-                .statusCode(200)
-                .body("name", equalTo("Integration Test Device"))
-                .body("ieeeAddress", equalTo("0x00124b001f2e3a99"));
-    }
-
-    @Test
-    void shouldUpdateDevice() {
-        // Create device first
-        Long deviceId = createTestDeviceViaApi();
-
-        // Update it
-        UpdateDeviceRequest update = new UpdateDeviceRequest(
-                "Updated Name", "New Room"
-        );
-
-        given()
-                .contentType("application/json")
-                .body(update)
-                .when().put("/devices/" + deviceId)
-                .then()
-                .statusCode(200)
-                .body("name", equalTo("Updated Name"))
-                .body("room", equalTo("New Room"));
-    }
-
-    private Long createTestDeviceViaApi() {
-        CreateDeviceRequest request = new CreateDeviceRequest(
-                "Test", "0x001", DeviceType.LIGHT, "Room"
-        );
-
-        return given()
-                .contentType("application/json")
-                .body(request)
-                .when().post("/devices")
-                .then()
-                .extract().body().jsonPath().getLong("id");
-    }
-}
+```python
+monkeypatch.setattr(telemetry_service, "write_telemetry",
+                    lambda device, measurement, fields: calls.append((device, measurement, fields)))
 ```
 
-### Database Integration Tests
+**InfluxDB queries** — hand-written `FakeTable` / `FakeRecord` classes in `test_telemetry_api.py`
+implementing `get_time()`, `get_value()`, `get_field()` and a `records` list. This is the
+equivalent of Quarkus' `@InjectMock TelemetryService`. Keep them local to that module.
 
-```java
-@QuarkusTest
-@TestTransaction
-class DeviceRepositoryTest {
+**Automation commands** — patch `device_command_service.set_state` and collect `(name, state)`.
 
-    @Inject
-    DeviceRepository repository;
+Patching a module-level singleton's attribute is the substitution mechanism throughout, because
+there is no DI container in which to swap a bean.
 
-    @Test
-    void shouldSaveAndFindDevice() {
-        Device device = Device.builder()
-                .name("Test Device")
-                .ieeeAddress("0x001")
-                .type(DeviceType.LIGHT)
-                .build();
+## MQTT, scheduler and settings
 
-        // Save
-        Device saved = repository.save(device)
-                .await().indefinitely();
+`conftest.py` sets, before any app import:
 
-        assertNotNull(saved.getId());
-
-        // Find
-        Device found = repository.findById(saved.getId())
-                .await().indefinitely();
-
-        assertEquals("Test Device", found.getName());
-    }
-
-    @Test
-    void shouldFindByIeeeAddress() {
-        Device device = createAndSaveDevice("0x123456789abcdef");
-
-        Device found = repository.findByIeeeAddress("0x123456789abcdef")
-                .await().indefinitely();
-
-        assertNotNull(found);
-        assertEquals(device.getId(), found.getId());
-    }
-
-    private Device createAndSaveDevice(String ieeeAddress) {
-        Device device = Device.builder()
-                .name("Test")
-                .ieeeAddress(ieeeAddress)
-                .type(DeviceType.LIGHT)
-                .build();
-
-        return repository.save(device).await().indefinitely();
-    }
-}
+```python
+os.environ.setdefault("MQTT_ENABLED", "false")
+os.environ.setdefault("SCHEDULER_ENABLED", "false")
 ```
 
-## Test Data Builders
+The Quarkus test profile switched the same channels to the in-memory connector for the same
+reason. A new external integration should get the same kind of switch rather than a test-only
+code path.
 
-### Builder Pattern for Test Fixtures
+Settings are `@lru_cache`d — after changing an environment variable or mutating
+`get_settings().automation.*`, call `get_settings.cache_clear()` (or restore the previous value
+within the same test).
 
-```java
-public class DeviceTestBuilder {
+## Consumers and rules
 
-    public static Device.DeviceBuilder defaultDevice() {
-        return Device.builder()
-                .id(1L)
-                .name("Test Device")
-                .ieeeAddress("0x00124b001f2e3a45")
-                .type(DeviceType.LIGHT)
-                .state("OFF")
-                .room("Living Room")
-                .createdAt(Instant.now())
-                .updatedAt(Instant.now());
-    }
+Consumers are called directly; there is no broker in the loop:
 
-    public static Device createLightDevice(String name) {
-        return defaultDevice()
-                .name(name)
-                .type(DeviceType.LIGHT)
-                .build();
-    }
-
-    public static Device createSensorDevice(String name) {
-        return defaultDevice()
-                .name(name)
-                .type(DeviceType.SENSOR)
-                .state(null) // Sensors don't have state
-                .build();
-    }
-}
+```python
+consumers.consume_devices("zigbee2mqtt/bridge/devices", json.dumps(DISCOVERY_PAYLOAD).encode())
+devices = {d.ieee_address: d for d in _devices()}
 ```
 
-## Mocking Patterns
+The rule engine is exercised with local `Rule` subclasses defined at module top —
+`RecordingRule`, `FailingRule`, `DisabledRule`, `ScheduleOnlyRule`, `SampleThresholdRule` — fed
+through a `RuleRegistry` built by a `registry_with(*rules)` helper. `fire()` temporarily swaps
+`app.automation.engine.rule_registry` and restores it in a `finally`. Reuse those helpers rather
+than adding a parallel mechanism.
 
-### Mocking Repositories
+`test_registry_discovers_rules_sorted_by_name` pins the real registry contents and their order —
+a new rule must be added there too.
 
-```java
-@InjectMock
-DeviceRepository repository;
+## Parametrisation
 
-@BeforeEach
-void setup() {
-    // Common mock setup
-    when(repository.findAll())
-            .thenReturn(Multi.createFrom().items(
-                    createDevice(1L),
-                    createDevice(2L)
-            ));
-}
-```
+`@pytest.mark.parametrize` is the default for table-shaped cases and is used heavily:
 
-### Mocking Reactive Return Types
+- `test_z2m_mapper.py` — description → `DeviceType` across nine descriptions
+- `test_telemetry_api.py` — eight invalid query-param combinations that must all return 400
+- `test_datetimes.py` — microseconds → expected `OffsetDateTime` / `Instant` rendering
+- `test_telemetry_service.py` — blank values that must raise from `sanitize`
 
-```java
-// Return Uni
-when(service.getDevice(1L))
-        .thenReturn(Uni.createFrom().item(device));
+Prefer one parametrised test over five near-identical ones.
 
-// Return empty Uni
-when(service.getDevice(99L))
-        .thenReturn(Uni.createFrom().nullItem());
+## What is deliberately not tested
 
-// Return failure
-when(service.getDevice(99L))
-        .thenReturn(Uni.createFrom().failure(new DeviceNotFoundException(99L)));
+- paho-mqtt itself (no Mosquitto container)
+- The InfluxDB client (no Influx container)
+- `/q/health`, which the frontend does not consume
+- Quarkus framework-supplied health checks, which have no Python equivalent
 
-// Return Multi
-when(repository.findAll())
-        .thenReturn(Multi.createFrom().items(device1, device2));
-```
+## CI
 
-## Test Profiles
+Both `deploy.yml` (pushes to `main`) and `python-ci.yml` (pull requests only) run the same thing:
+start a throwaway `postgres:17` on a dedicated Docker network, build the image's `test` stage,
+and run `pytest -q` with the checkout mounted over `/app` — the runtime image ships without
+`tests/`. Building the `test` stage doubles as a Dockerfile check.
 
-### Custom Test Configuration
-
-```java
-public class DeviceTestProfile implements QuarkusTestProfile {
-
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return Map.of(
-                "quarkus.datasource.db-kind", "h2",
-                "quarkus.datasource.username", "test",
-                "quarkus.datasource.password", "test",
-                "mqtt.broker-url", "tcp://localhost:1883"
-        );
-    }
-
-    @Override
-    public Set<Class<?>> getEnabledAlternatives() {
-        return Set.of(MockMqttClient.class);
-    }
-}
-
-@QuarkusTest
-@TestProfile(DeviceTestProfile.class)
-class DeviceWithCustomProfileTest {
-    // Tests using custom profile
-}
-```
-
-## Testing Reactive Streams (Multi)
-
-```java
-@Test
-void shouldStreamAllDevices() {
-    List<Device> devices = List.of(
-            createDevice(1L),
-            createDevice(2L),
-            createDevice(3L)
-    );
-
-    when(repository.findAll())
-            .thenReturn(Multi.createFrom().iterable(devices));
-
-    List<Device> result = service.getAllDevices()
-            .collect().asList()
-            .await().indefinitely();
-
-    assertEquals(3, result.size());
-}
-```
-
-## Assertions
-
-### Common Assertions
-
-```java
-// Basic assertions
-assertEquals(expected, actual);
-assertNotNull(result);
-assertTrue(condition);
-
-// Collections
-assertThat(list).hasSize(3);
-assertThat(list).contains(expectedItem);
-
-// Exceptions
-assertThrows(DeviceNotFoundException.class, () -> {
-    service.getDevice(99L).await().indefinitely();
-});
-
-// REST Assured
-.then()
-    .statusCode(200)
-    .body("id", equalTo(1))
-    .body("name", equalTo("Test"))
-    .body("devices", hasSize(3));
-```
-
-## Best Practices
-
-1. **Use descriptive test names** - `shouldReturnDeviceWhenExists()` not `testGetDevice()`
-2. **Follow AAA pattern** - Arrange, Act, Assert (Given, When, Then)
-3. **One assertion per test** - Focus on single behavior
-4. **Use test builders** - Keep test setup DRY
-5. **Mock external dependencies** - Database, MQTT, external APIs
-6. **Test edge cases** - Null values, empty lists, invalid input
-7. **Use @TestTransaction** - For database tests that need rollback
-8. **Await reactive types in tests** - `.await().indefinitely()` is acceptable in tests
-9. **Keep tests fast** - Unit tests < 100ms, integration tests < 5s
-10. **Clean up test data** - Use @TestTransaction or cleanup methods
-
-## Common Pitfalls
-
-### ❌ Don't Block in Production Code
-
-```java
-// BAD - blocking in service
-public Device getDevice(Long id) {
-    return repository.findById(id).await().indefinitely();  // Never do this!
-}
-
-// GOOD - reactive
-public Uni<Device> getDevice(Long id) {
-    return repository.findById(id);
-}
-
-// OK - blocking in tests
-@Test
-void test() {
-    Device device = service.getDevice(1L).await().indefinitely();  // Fine in tests
-}
-```
-
-### ❌ Don't Test Implementation Details
-
-```java
-// BAD - testing internal implementation
-@Test
-void shouldCallRepositoryMethod() {
-    service.getDevice(1L);
-    verify(repository).findById(1L);  // Testing implementation, not behavior
-}
-
-// GOOD - testing behavior
-@Test
-void shouldReturnDeviceWhenExists() {
-    Device result = service.getDevice(1L).await().indefinitely();
-    assertEquals("Test Device", result.getName());  // Testing outcome
-}
-```
-
-### ❌ Don't Share Mutable State Between Tests
-
-```java
-// BAD - shared mutable state
-private Device sharedDevice = new Device();  // Dangerous!
-
-@Test
-void test1() {
-    sharedDevice.setName("Test 1");  // Mutates shared state
-}
-
-// GOOD - create fresh instances
-@Test
-void test2() {
-    Device device = createTestDevice();  // Fresh instance per test
-}
-```
+The two workflows must never fire on the same event; `deploy.yml` already gates on the suite, so
+a push-triggered CI run would only duplicate it.

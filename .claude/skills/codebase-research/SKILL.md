@@ -38,7 +38,7 @@ Search for existing patterns that match the request:
 
 ### 2. Check Architecture Patterns
 Reference pattern specs in `.claude/specs/`:
-- `reactive-patterns.md` - Mutiny Uni/Multi patterns
+- `architecture-patterns.md` - Layering, sessions, wiring, Quarkus parity contract
 - `mqtt-patterns.md` - MQTT integration patterns
 - `testing-patterns.md` - Test patterns
 - `coding-standards.md` - General conventions
