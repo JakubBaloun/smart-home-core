@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { RouteObject } from 'react-router-dom'
 import { devicesModule } from '@/modules/devices/routes'
 import { recipesModule } from '@/modules/recipes/routes'
+import { temperatureModule } from '@/modules/temperature/routes'
 
 export interface ModuleNav {
   to: string
@@ -21,4 +22,4 @@ export interface ModuleManifest {
  * A new module ships a `routes.tsx` manifest and registers itself here.
  * Kiosk-style routes (no shell) are composed separately in App.tsx.
  */
-export const shellModules: ModuleManifest[] = [devicesModule, recipesModule]
+export const shellModules: ModuleManifest[] = [devicesModule, temperatureModule, recipesModule]
