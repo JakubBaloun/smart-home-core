@@ -21,6 +21,7 @@ RECONNECT_INTERVAL_SECONDS = 5
 SUBSCRIPTIONS: list[tuple[str, int, Callable[[str, bytes], None]]] = [
     ("zigbee2mqtt/bridge/devices", 1, consumers.consume_devices),
     ("zigbee2mqtt/bridge/state", 0, consumers.consume_bridge_state),
+    ("zigbee2mqtt/bridge/response/device/rename", 1, consumers.consume_rename_response),
     ("zigbee2mqtt/+", 0, consumers.consume_telemetry),
     ("zigbee2mqtt/+/availability", 1, consumers.consume_availability),
 ]

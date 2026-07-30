@@ -24,9 +24,9 @@ export function TemperatureCard({ device, latest }: { device: Device; latest: La
   const [range, setRange] = useState<TimeRange>('24h')
 
   const { data: history } = usePolling(
-    () => getTelemetryHistory(device.friendlyName, 'temperature', range),
+    () => getTelemetryHistory(device.ieeeAddress, 'temperature', range),
     REFRESH_INTERVAL_MS,
-    [device.friendlyName, range],
+    [device.ieeeAddress, range],
   )
 
   const value = latest.values.temperature

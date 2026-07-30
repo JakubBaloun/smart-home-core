@@ -7,6 +7,7 @@ from datetime import datetime
 from fastapi import APIRouter, Query
 
 from app.common.exceptions import BadRequestError
+from app.device.service import device_service
 from app.telemetry.fields import KNOWN_FIELDS, KNOWN_FIELDS_ORDERED
 from app.telemetry.schemas import LatestTelemetryResponse, TelemetryPoint, TelemetryResponse
 from app.telemetry.service import telemetry_service
@@ -19,20 +20,50 @@ VALID_WINDOW = re.compile(r"^\d+[smhd]$")
 telemetry_router = APIRouter(prefix="/api/telemetry", tags=["telemetry"])
 
 
+def _resolve(device_name: str) -> tuple[list[str], str]:
+    """Map the path identifier to the tag values to query and the name to echo.
+
+    The identifier may be an ieee address (what the frontend now sends), the
+    current friendly name, or any name the device used to have — all three
+    resolve to the same device and therefore to the same full history. An
+    identifier that matches no device falls through untouched, so telemetry from
+    devices that were never in the registry, or that have since been deleted,
+    stays queryable by name.
+    """
+    identity = device_service.resolve_identity(device_name)
+    if identity is None:
+        log.debug("Telemetry identifier '%s' matches no known device", device_name)
+        return [device_name], device_name
+    return identity.telemetry_keys, identity.friendly_name
+
+
 @telemetry_router.get("/{device_name}/latest", response_model=LatestTelemetryResponse)
 def get_latest(device_name: str) -> LatestTelemetryResponse:
     log.info("Request received for latest telemetry: device=%s", device_name)
 
-    tables = telemetry_service.query_latest(device_name)
+    device_ids, device_name = _resolve(device_name)
+    tables = telemetry_service.query_latest(device_ids)
     values: dict[str, float] = {}
     last_updated: datetime | None = None
 
+    # The union query returns one `last()` record per field *per tag value*, so
+    # a device with pre-rename history yields two candidates for the same field.
+    # Keep the most recent; an undated record only fills an empty slot.
+    field_times: dict[str, datetime] = {}
+
     for table in tables:
         for record in table.records:
-            if record.get_field() is not None and record.get_value() is not None:
-                values[record.get_field()] = float(record.get_value())
-                time = record.get_time()
-                if time is not None and (last_updated is None or time > last_updated):
+            field = record.get_field()
+            if field is None or record.get_value() is None:
+                continue
+            time = record.get_time()
+            known = field_times.get(field)
+            if field in values and not (time is not None and (known is None or time > known)):
+                continue
+            values[field] = float(record.get_value())
+            if time is not None:
+                field_times[field] = time
+                if last_updated is None or time > last_updated:
                     last_updated = time
 
     return LatestTelemetryResponse(
@@ -53,13 +84,15 @@ def get_history(
 
     from_instant, to_instant = _validate_history_params(field, from_, to, aggregate, window)
 
+    device_ids, device_name = _resolve(device_name)
+
     if aggregate is not None:
         tables = telemetry_service.query_telemetry_aggregated(
-            device_name, "sensor_data", field, from_instant, to_instant, aggregate, window
+            device_ids, "sensor_data", field, from_instant, to_instant, aggregate, window
         )
     else:
         tables = telemetry_service.query_telemetry(
-            device_name, "sensor_data", field, from_instant, to_instant
+            device_ids, "sensor_data", field, from_instant, to_instant
         )
 
     points = [
@@ -68,6 +101,10 @@ def get_history(
         for record in table.records
         if record.get_value() is not None
     ]
+    # Influx returns one table per tag value, so a device whose history spans a
+    # rename comes back as two concatenated runs. The chart plots in array
+    # order — sort or it zigzags.
+    points.sort(key=lambda p: (p.time is None, p.time))
     return TelemetryResponse(deviceName=device_name, field=field, points=points)
 
 

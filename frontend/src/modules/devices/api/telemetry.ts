@@ -8,8 +8,14 @@ const RANGE_TO_DURATION_MS: Record<TimeRange, number> = {
   '7d': 7 * 24 * 60 * 60 * 1000,
 }
 
+/**
+ * `deviceKey` should be the device's `ieeeAddress`. It is immutable, so charts
+ * survive a rename; the backend maps it to the device's whole history,
+ * including points recorded under names it used to have. A friendly name still
+ * works, but only for as long as that name is current.
+ */
 export function getTelemetryHistory(
-  deviceName: string,
+  deviceKey: string,
   field: string,
   range: TimeRange,
 ): Promise<TelemetryResponse> {
@@ -22,9 +28,9 @@ export function getTelemetryHistory(
     to: to.toISOString(),
   })
 
-  return apiFetch<TelemetryResponse>(`/telemetry/${encodeURIComponent(deviceName)}?${params}`)
+  return apiFetch<TelemetryResponse>(`/telemetry/${encodeURIComponent(deviceKey)}?${params}`)
 }
 
-export function getLatestTelemetry(deviceName: string): Promise<LatestTelemetryResponse> {
-  return apiFetch<LatestTelemetryResponse>(`/telemetry/${encodeURIComponent(deviceName)}/latest`)
+export function getLatestTelemetry(deviceKey: string): Promise<LatestTelemetryResponse> {
+  return apiFetch<LatestTelemetryResponse>(`/telemetry/${encodeURIComponent(deviceKey)}/latest`)
 }

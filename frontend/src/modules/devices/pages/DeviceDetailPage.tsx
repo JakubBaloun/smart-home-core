@@ -33,10 +33,12 @@ export function DeviceDetailPage() {
     [deviceId],
   )
 
+  // Keyed by ieee address, not friendly name: renaming the device must not
+  // detach it from its own telemetry.
   const { data: latest } = usePolling(
-    () => getLatestTelemetry(device?.friendlyName ?? ''),
+    () => getLatestTelemetry(device?.ieeeAddress ?? ''),
     REFRESH_INTERVAL_MS,
-    [device?.friendlyName],
+    [device?.ieeeAddress],
   )
 
   const fields = latest ? Object.keys(latest.values) : []
@@ -238,7 +240,7 @@ export function DeviceDetailPage() {
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {fields.map((field) => (
-              <TelemetryFieldChart key={field} deviceName={device.friendlyName} field={field} range={range} />
+              <TelemetryFieldChart key={field} deviceKey={device.ieeeAddress} field={field} range={range} />
             ))}
           </div>
         </div>
@@ -248,16 +250,16 @@ export function DeviceDetailPage() {
 }
 
 function TelemetryFieldChart({
-  deviceName,
+  deviceKey,
   field,
   range,
 }: {
-  deviceName: string
+  deviceKey: string
   field: string
   range: TimeRange
 }) {
-  const { data } = usePolling(() => getTelemetryHistory(deviceName, field, range), REFRESH_INTERVAL_MS, [
-    deviceName,
+  const { data } = usePolling(() => getTelemetryHistory(deviceKey, field, range), REFRESH_INTERVAL_MS, [
+    deviceKey,
     field,
     range,
   ])

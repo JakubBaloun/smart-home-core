@@ -1,9 +1,14 @@
 # backend-python
 
-A Python/FastAPI port of the Quarkus backend in `../backend`. It is a **faithful
-rewrite, not a redesign**: same REST API, same MQTT behaviour, same automation
-rules, same data model. The Quarkus code is the specification — wherever the two
-could differ, this port follows what Quarkus actually does, including quirks.
+A Python/FastAPI port of the Quarkus backend in `../backend`. It started as a
+**faithful rewrite, not a redesign**: same REST API, same MQTT behaviour, same
+automation rules, same data model. The Quarkus code is the specification —
+wherever the two could differ, this port follows what Quarkus actually does,
+including quirks.
+
+That parity rule now has **one deliberate exception**: telemetry identity. See
+"Telemetry is keyed by ieee_address" below for what diverges and why. Quarkus is
+no longer the spec for that area.
 
 This backend now **serves production**. `docker-compose.yaml` runs it as
 `smart-home-app` and nginx proxies `/api` to it. The Quarkus source in
@@ -112,7 +117,11 @@ corrupt it, and the schema is not changing as part of this port. Instead:
   migration mechanism.
 
 If the schema ever changes, add the Flyway migration in `backend/` as usual and
-re-snapshot `schema.sql`.
+re-snapshot `schema.sql`. That has happened once:
+`V1.3.0__Create_Device_Alias_Table.sql`, added for the telemetry identity work
+below. It is additive (one new table plus a seed from `device`) and touches no
+existing column or row. The production compose file mounts the whole migration
+directory, so it applies on the next deploy with no compose change.
 
 **Never run both backends against the same infrastructure for longer than a
 parity check.** They subscribe to the same topics, so device rows race on
@@ -139,8 +148,10 @@ docker run --rm -v "$PWD:/app" \
 ```
 
 The suite drops and recreates the `public` schema from `schema.sql` once per
-run, truncates between tests, and never mocks the database. 114 tests currently
-pass, covering every Quarkus test class that has a behavioural equivalent
+run, truncates between tests, and never mocks the database. 137 tests currently
+pass: `tests/test_device_identity.py` covers the rename/telemetry-identity
+behaviour, and the rest cover every Quarkus test class that has a behavioural
+equivalent
 (`RecipeResourceTest`, `DeviceResourceTest`, `CommandResourceTest`,
 `TelemetryResourceTest`, `TelemetryServiceTest`, `DeviceRepositoryTest`,
 `DeviceCommandServiceTest`, `Z2MDeviceMapperTest`, the MQTT consumer tests, and
@@ -176,6 +187,113 @@ against both backends on the same infrastructure:
   `{"brightness":200}`, `{"color_temp":370}`, `{"effect":"blink"}` to
   `zigbee2mqtt/<name>/set`
 - command error cases: unknown command, blank command, missing payload keys
+
+## Telemetry is keyed by ieee_address (deliberate divergence from Quarkus)
+
+**The bug.** Rename a thermometer in the web app and its charts go blank. In the
+Quarkus design `friendly_name` did two incompatible jobs at once: user-facing
+label, and primary key for telemetry. The telemetry consumer took the device
+name straight out of the topic (`zigbee2mqtt/<friendly_name>`, prefix stripped,
+no lookup) and wrote it to InfluxDB as the `device_id` tag; the frontend then
+asked for charts using the device's *current* name from Postgres. Renaming only
+wrote the new name to the `friendly_name` column and told Zigbee2MQTT nothing —
+so Z2M kept publishing under the old name, all history stayed under the old
+name, and the frontend asked for a name nothing was ever filed under.
+
+**The split.** `ieee_address` is the device's immutable hardware identity and is
+now the InfluxDB `device_id` tag. `friendly_name` is a label. The new
+`device_alias` table records every name a device has ever been published under,
+which is what makes the two ends meet.
+
+### The three decisions worth arguing about
+
+**1. A rename now asks Zigbee2MQTT to rename too — but nothing depends on it
+succeeding.** Tagging by `ieee_address` means the consumer needs a topic-name →
+device lookup, and a lookup that can fail is a lookup that can silently stop all
+telemetry. So `PUT /api/devices/{id}` publishes to
+`zigbee2mqtt/bridge/request/device/rename` and listens on
+`.../response/device/rename`. Crucially that publish is **best effort, outside
+the transaction, and never fails the request**: the old name stays in
+`device_alias`, so the inbound resolver (ieee → current name → any former name)
+still resolves the old topic even if Z2M is offline, rejects the rename, or is
+never told. Telemetry and availability keep flowing either way; the rename
+request is an optimisation that keeps the topic tidy, not a correctness
+requirement. Verified live with no Z2M running at all.
+
+**2. Existing history is unioned on read, never rewritten.** Everything already
+in InfluxDB is tagged with the friendly name of the day. Switching the tag
+without more would relocate the bug rather than fix it, so the *query* side asks
+for all of a device's identities at once —
+`r.device_id == "<ieee>" or r.device_id == "<name>" or ...` — built from
+`DeviceIdentity.telemetry_keys`. The Flyway migration seeds `device_alias` with
+each device's current name, which is exactly the tag its existing points carry,
+so history is continuous across the cutover with **zero writes to InfluxDB**.
+Two consequences fall out of the union and are handled in the router: points
+arrive as one table per tag value and are re-sorted by time (Recharts plots in
+array order), and `last()` returns one record per field *per tag value*, so
+`/latest` picks the newest per field rather than whichever came last.
+
+**3. Telemetry from a device that is not in Postgres is still written.**
+Unchanged from Quarkus, on purpose. An unresolvable topic name is tagged with
+the raw name, exactly as before, and logged once per name. Dropping it would
+mean losing readings in the window between a device joining the network and the
+next `bridge/devices` sync, and it would turn a transient database problem into
+permanent data loss. The read path falls back the same way — an identifier that
+matches no device is queried verbatim — so that data stays reachable by name,
+and it heals itself once discovery registers the device.
+
+### Other notable points
+
+- **`z2m_mapper.update_entity_from_payload` still overwrites `friendly_name`.**
+  Z2M remains the source of truth for what a device is *called on MQTT*, so a
+  rename done in the Z2M UI is picked up as before. The app's rename is not
+  authoritative over Z2M; it is *propagated* to Z2M, which is why the old
+  "rename silently reverts on the next Z2M restart" trap no longer fires in the
+  normal case. If Z2M rejects the rename, the label does revert at the next sync
+  — an honest signal, logged at both ends, and harmless to data because both
+  names resolve to the same device. The alternative (an app-owned `display_name`
+  column that Z2M never touches) is a bigger change and is not implemented.
+- **`alias` is globally unique.** A name identifies at most one device, first
+  claimant wins. Without this, two devices that held the same name at different
+  times would inherit each other's history.
+- **Availability now resolves through the alias set** before updating, so an
+  availability message on a pre-rename topic still lands on the right row.
+- **Rule events still carry a name, not an ieee address** (`automation.*` config
+  names devices by friendly name). The event now carries the *registry's* name
+  rather than the raw topic name — identical unless the two have drifted.
+- **No caching of the topic → device lookup.** It is one indexed query per
+  telemetry message on a local database, and the availability consumer already
+  did a write per message. A cache here would risk re-creating the exact class
+  of staleness bug being fixed.
+- **The frontend now requests telemetry by `ieeeAddress`** (`DeviceDetailPage`,
+  `TemperatureCard`, `temperature.ts`). Friendly names still work — the router
+  accepts an ieee address, the current name, or any former name — so old
+  bookmarks and a stale open tab keep working.
+
+### One-off: reattaching history for a device renamed *before* this change
+
+The migration can only seed the name a device has *now*. If a device was renamed
+under the old code, its pre-rename points sit under a name Postgres no longer
+knows, and nothing can infer it. **This is a manual step, left for you to run.**
+
+Find the orphaned tag values:
+
+```bash
+docker exec influxdb-dev influx query --org smart-home '
+import "influxdata/influxdb/schema"
+schema.tagValues(bucket: "telemetry", tag: "device_id")'
+```
+
+Then claim the old name for the device that owns it (additive, one row, no
+telemetry is touched):
+
+```sql
+INSERT INTO device_alias (ieee_address, alias)
+VALUES ('0x00124b00xxxxxxxx', '<the old name>')
+ON CONFLICT DO NOTHING;
+```
+
+The charts pick it up on the next request — no restart, no InfluxDB rewrite.
 
 ## Ambiguities in the Quarkus code and how they were resolved
 

@@ -20,6 +20,10 @@ log = logging.getLogger(__name__)
 TOPIC_PREFIX = "zigbee2mqtt/"
 AVAILABILITY_SUFFIX = "/availability"
 
+# Topic names that matched no device, so their telemetry is still filed under
+# the raw name. Tracked only to keep the warning to once per name.
+_unregistered_names: set[str] = set()
+
 
 def consume_devices(topic: str, payload: bytes) -> None:
     log.info("Received Z2M device discovery payload, beginning sync process")
@@ -55,15 +59,48 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
         log.debug("No known telemetry fields in message from %s, skipping", device_name)
         return
 
+    # The topic carries a mutable label; the InfluxDB tag must be the immutable
+    # identity, or a rename orphans every point written before it.
+    identity = _identity_for(device_name)
+    tag = identity.ieee_address if identity else device_name
+    # Rules are configured by device name, so the event keeps carrying a name —
+    # the registry's, which is the one the user sees and configures against.
+    rule_name = identity.friendly_name if identity else device_name
+
     try:
-        telemetry_service.write_telemetry(device_name, "sensor_data", fields)
+        telemetry_service.write_telemetry(tag, "sensor_data", fields)
     except Exception as e:
         log.error("Failed to write telemetry from %s (payload: %s): %s", device_name, body, e)
         return
 
     event_bus.publish(
-        TelemetryReceivedEvent(device_name, fields, datetime.now(timezone.utc))
+        TelemetryReceivedEvent(rule_name, fields, datetime.now(timezone.utc))
     )
+
+
+def _identity_for(device_name: str):
+    """Resolve a topic name to a device, tolerating a registry that is down.
+
+    A lookup failure must not cost us the reading, so an unresolvable name falls
+    back to being tagged by name — the same thing that happened before this
+    change, and still readable, because the query side falls back the same way.
+    """
+    try:
+        identity = device_service.resolve_identity(device_name)
+    except Exception as e:
+        log.error("Could not resolve device for topic name '%s': %s", device_name, e)
+        return None
+    if identity is None:
+        if device_name not in _unregistered_names:
+            _unregistered_names.add(device_name)
+            log.warning(
+                "Telemetry from '%s' matches no registered device; filing it under that "
+                "name until Z2M device discovery picks the device up",
+                device_name,
+            )
+    else:
+        _unregistered_names.discard(device_name)
+    return identity
 
 
 def consume_availability(topic: str, payload: bytes) -> None:
@@ -77,6 +114,38 @@ def consume_availability(topic: str, payload: bytes) -> None:
         device_service.update_availability(friendly_name, online)
     except Exception as e:
         log.error("Failed to update availability of '%s': %s", friendly_name, e)
+
+
+def consume_rename_response(topic: str, payload: bytes) -> None:
+    """Outcome of a rename we asked Z2M for.
+
+    Nothing is repaired here: on success the retained bridge/devices message
+    that follows re-syncs the name anyway, and on failure the old name remains a
+    resolvable alias so telemetry, availability and history are unaffected. The
+    log is the only signal that the app's label and Z2M's topic have drifted.
+    """
+    try:
+        parsed = json.loads(payload.decode("utf-8"))
+    except ValueError as e:
+        log.warning("Failed to parse Z2M rename response: %s", e)
+        return
+    if not isinstance(parsed, dict):
+        return
+
+    data = parsed.get("data") or {}
+    if parsed.get("status") == "ok":
+        log.info(
+            "Z2M renamed device '%s' to '%s'", data.get("from"), data.get("to")
+        )
+    else:
+        log.error(
+            "Z2M refused to rename '%s' to '%s': %s. The app keeps the new label, "
+            "Z2M keeps publishing under the old name; both names resolve to the "
+            "same device, so no data is lost.",
+            data.get("from"),
+            data.get("to"),
+            parsed.get("error", "unknown error"),
+        )
 
 
 def consume_bridge_state(topic: str, payload: bytes) -> None:

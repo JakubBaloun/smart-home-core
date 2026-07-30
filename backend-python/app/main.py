@@ -27,7 +27,15 @@ logging.basicConfig(
 
 log = logging.getLogger(__name__)
 
-EXPECTED_TABLES = {"device", "recipe", "recipe_ingredient", "recipe_step", "tag", "recipe_tag"}
+EXPECTED_TABLES = {
+    "device",
+    "device_alias",
+    "recipe",
+    "recipe_ingredient",
+    "recipe_step",
+    "tag",
+    "recipe_tag",
+}
 
 
 def verify_schema() -> None:

@@ -75,3 +75,16 @@ CREATE TABLE recipe_tag (
     PRIMARY KEY (recipe_id, tag_id)
 );
 CREATE INDEX idx_recipe_tag_tag_id ON recipe_tag(tag_id);
+
+-- V1.3.0__Create_Device_Alias_Table.sql
+CREATE TABLE device_alias (
+    id BIGSERIAL PRIMARY KEY,
+    ieee_address VARCHAR(24) NOT NULL REFERENCES device(ieee_address) ON DELETE CASCADE,
+    alias VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+CREATE INDEX idx_device_alias_ieee_address ON device_alias(ieee_address);
+
+INSERT INTO device_alias (ieee_address, alias)
+SELECT ieee_address, friendly_name FROM device
+ON CONFLICT DO NOTHING;

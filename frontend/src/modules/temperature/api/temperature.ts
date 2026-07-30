@@ -15,7 +15,7 @@ export async function getTemperatureReadings(): Promise<TemperatureReading[]> {
   const results = await Promise.all(
     devices.map(async (device): Promise<TemperatureReading | null> => {
       try {
-        const latest = await getLatestTelemetry(device.friendlyName)
+        const latest = await getLatestTelemetry(device.ieeeAddress)
         return typeof latest.values.temperature === 'number' ? { device, latest } : null
       } catch {
         return null

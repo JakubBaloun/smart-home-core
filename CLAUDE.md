@@ -91,7 +91,9 @@ docker exec mqtt-broker-dev mosquitto_pub -t zigbee2mqtt/temp -m '{"temperature"
 
 **Never run the production `docker-compose.yaml` from the repo root on a dev machine.** It shares
 the default compose project name and service names with `docker-compose.dev.yaml`, so it recreates
-the dev containers — and the dev stack declares no volumes, so its data is lost. Use `-p <name>`.
+the dev containers. Use `-p <name>`. The dev data itself is safe: the dev stack has its own named
+volumes, `db_data_dev` and `influxdb_data_dev`, suffixed precisely so they cannot resolve to the
+production `db_data` / `influxdb_data` under the shared project name.
 
 ## Architecture & Conventions
 
@@ -102,6 +104,8 @@ the dev containers — and the dev stack declares no volumes, so its data is los
 - `zigbee2mqtt/<friendly_name>` → telemetry into InfluxDB
 - `zigbee2mqtt/<friendly_name>/availability` → device availability (needs Z2M availability feature)
 - `zigbee2mqtt/<friendly_name>/set` ← outgoing commands
+- `zigbee2mqtt/bridge/request/device/rename` ← app-initiated rename, so the topic follows the
+  label the user set; the outcome arrives on `zigbee2mqtt/bridge/response/device/rename`
 
 Quarkus opened five SmallRye channels; the port uses one paho connection with
 `message_callback_add` per topic filter. Subscriptions are re-established in `on_connect`, so a
@@ -119,6 +123,13 @@ broker restart does not silently stop delivery.
   `telemetry/service.py` and `automation/rules/base.py`.
 - **Availability is owned by the availability topic**, not by device sync:
   `z2m_mapper.update_entity_from_payload` must not touch `available`/`last_seen`.
+- **InfluxDB is tagged by `ieee_address`, never by `friendly_name`.** The friendly name is a
+  mutable label; using it as the tag orphaned a device's whole history on rename. Every name a
+  device has ever held is kept in the `device_alias` table, and reads union the ieee address with
+  those names so pre-cutover history stays visible. Renaming through the API also publishes
+  `zigbee2mqtt/bridge/request/device/rename` so the topic follows the label — best effort, since
+  the alias makes a failed propagation harmless. This is the one **deliberate** divergence from
+  Quarkus; see `backend-python/README.md`.
 - **Datetimes use the annotated types in `common/datetimes.py`**, never bare `datetime`.
   Quarkus emits two different fraction formats and the frontend sees both: `OffsetDateTime`
   (device/recipe) prints the fewest digits needed, `Instant` (telemetry) pads to a multiple of

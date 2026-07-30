@@ -33,29 +33,37 @@ class TelemetryService:
         log.debug("Written telemetry for device %s, measurement %s", device_id, measurement)
 
     def query_telemetry(
-        self, device_id: str, measurement: str, field: str, from_: datetime, to: datetime
+        self,
+        device_ids: str | list[str],
+        measurement: str,
+        field: str,
+        from_: datetime,
+        to: datetime,
     ) -> list[Any]:
         settings = get_settings()
         flux = (
             f'from(bucket: "{settings.influxdb_bucket}")\n'
             f"  |> range(start: {_instant(from_)}, stop: {_instant(to)})\n"
             f'  |> filter(fn: (r) => r._measurement == "{sanitize(measurement)}")\n'
-            f'  |> filter(fn: (r) => r.device_id == "{sanitize(device_id)}")\n'
+            f"  |> filter(fn: (r) => {device_filter(device_ids)})\n"
             f'  |> filter(fn: (r) => r._field == "{sanitize(field)}")\n'
         )
         try:
             tables = client.get_query_api().query(flux, org=settings.influxdb_org)
         except Exception as e:
-            log.error("Failed to query telemetry for device %s: %s", device_id, e)
+            log.error("Failed to query telemetry for device %s: %s", device_ids, e)
             raise TelemetryError("Failed to query telemetry") from e
         log.info(
-            "Queried telemetry for device %s, field %s, got %d tables", device_id, field, len(tables)
+            "Queried telemetry for device %s, field %s, got %d tables",
+            device_ids,
+            field,
+            len(tables),
         )
         return tables
 
     def query_telemetry_aggregated(
         self,
-        device_id: str,
+        device_ids: str | list[str],
         measurement: str,
         field: str,
         from_: datetime,
@@ -68,33 +76,33 @@ class TelemetryService:
             f'from(bucket: "{settings.influxdb_bucket}")\n'
             f"  |> range(start: {_instant(from_)}, stop: {_instant(to)})\n"
             f'  |> filter(fn: (r) => r._measurement == "{sanitize(measurement)}")\n'
-            f'  |> filter(fn: (r) => r.device_id == "{sanitize(device_id)}")\n'
+            f"  |> filter(fn: (r) => {device_filter(device_ids)})\n"
             f'  |> filter(fn: (r) => r._field == "{sanitize(field)}")\n'
             f"  |> aggregateWindow(every: {window}, fn: {aggregate}, createEmpty: false)\n"
         )
         try:
             tables = client.get_query_api().query(flux, org=settings.influxdb_org)
         except Exception as e:
-            log.error("Failed to query aggregated telemetry for device %s: %s", device_id, e)
+            log.error("Failed to query aggregated telemetry for device %s: %s", device_ids, e)
             raise TelemetryError("Failed to query telemetry") from e
-        log.info("Queried aggregated telemetry for device %s, field %s", device_id, field)
+        log.info("Queried aggregated telemetry for device %s, field %s", device_ids, field)
         return tables
 
-    def query_latest(self, device_id: str) -> list[Any]:
+    def query_latest(self, device_ids: str | list[str]) -> list[Any]:
         settings = get_settings()
         flux = (
             f'from(bucket: "{settings.influxdb_bucket}")\n'
             f"  |> range(start: -24h)\n"
             f'  |> filter(fn: (r) => r._measurement == "sensor_data")\n'
-            f'  |> filter(fn: (r) => r.device_id == "{sanitize(device_id)}")\n'
+            f"  |> filter(fn: (r) => {device_filter(device_ids)})\n"
             f"  |> last()\n"
         )
         try:
             tables = client.get_query_api().query(flux, org=settings.influxdb_org)
         except Exception as e:
-            log.error("Failed to query latest telemetry for device %s: %s", device_id, e)
+            log.error("Failed to query latest telemetry for device %s: %s", device_ids, e)
             raise TelemetryError("Failed to query latest telemetry") from e
-        log.info("Queried latest telemetry for device %s", device_id)
+        log.info("Queried latest telemetry for device %s", device_ids)
         return tables
 
 
@@ -114,6 +122,25 @@ def normalize_fields(fields: dict[str, Any]) -> dict[str, Any]:
                 "null" if value is None else type(value).__name__,
             )
     return normalized
+
+
+def device_filter(device_ids: str | list[str]) -> str:
+    """Flux predicate matching any of a device's tag values.
+
+    A device's points are spread across its ieee address (everything written
+    since the tag switch) and any friendly name it was known by before that, so
+    a chart has to read the union or it goes blank at the cutover.
+    """
+    values = [device_ids] if isinstance(device_ids, str) else list(device_ids)
+    if not values:
+        raise ValueError("At least one device id is required")
+
+    seen: list[str] = []
+    for value in values:
+        cleaned = sanitize(value)
+        if cleaned not in seen:
+            seen.append(cleaned)
+    return " or ".join(f'r.device_id == "{value}"' for value in seen)
 
 
 def sanitize(value: str | None) -> str:

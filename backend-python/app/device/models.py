@@ -32,3 +32,19 @@ class Device(Base):
     last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+
+
+class DeviceAlias(Base):
+    """Every name a device has ever been published under on MQTT.
+
+    Used to resolve an inbound `zigbee2mqtt/<name>` topic back to a device, and
+    to read telemetry that was written before `ieee_address` became the InfluxDB
+    tag. `alias` is globally unique — a name belongs to at most one device.
+    """
+
+    __tablename__ = "device_alias"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    ieee_address: Mapped[str] = mapped_column(String(24), nullable=False)
+    alias: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
