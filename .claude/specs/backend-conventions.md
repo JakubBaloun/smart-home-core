@@ -1,6 +1,7 @@
-# Coding Standards
+# Backend Conventions
 
-> Python conventions as they are actually written in `backend-python/`.
+> Python conventions as they are actually written in `backend-python/`. For frontend code see
+> `frontend-conventions.md`; for layering and wiring see `architecture-patterns.md`.
 >
 > This describes the running code. The Quarkus source in `backend/` is the behavioural
 > specification (what the API must do), never the style guide (how Python should look).
@@ -148,7 +149,8 @@ build a `JSONResponse` by hand outside `common/errors.py`.
 | `BadRequestError`         | 400    | `Bad Request`         |
 | `TelemetryError`          | —      | internal, not mapped  |
 
-The exact response shapes are a parity contract — see `parity-patterns.md`.
+The exact response shapes are a parity contract — see the "Parity contract" section of
+`architecture-patterns.md`.
 
 ## Configuration
 

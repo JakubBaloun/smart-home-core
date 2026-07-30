@@ -1,36 +1,65 @@
-# Code Review for Pull Request
+---
+description: Comprehensive code review of the current branch against main
+---
 
-Please launch the code-review-mentor agent to perform a comprehensive code review of all changes in the current branch since it diverged from the main branch.
+# Code Review: pull request
 
-Focus on:
-1. **Code Quality**: Design patterns, SOLID principles, code organization
-2. **Security**: Potential vulnerabilities, data validation, authentication/authorization
-3. **Best Practices**: Java/Quarkus conventions, reactive programming patterns, error handling
-4. **Testing**: Test coverage, test quality, edge cases
-5. **Performance**: Database queries, N+1 problems, reactive chain efficiency
-6. **Documentation**: JavaDoc completeness, inline comments where needed
-7. **Reactive Logging Pattern**: Logging must follow reactive principles (see `LOGGING_STRATEGY.md`)
-   - **Service layer**: ALL logs MUST be inside `.invoke()` (lazy execution)
-   - **Resource layer - Entry logs**: Can be outside (request already received) OR inside first `.invoke()` (for consistency)
-   - **Resource layer - Exit logs**: MUST be inside `.invoke()` (to access actual results)
-   - **When to log vs rely on tracing**:
-     - ✅ Log: Business operations (ipaStartMatching, ipaManualMatch), simple CRUD (findById)
-     - ❌ Don't log: Framework operations (findByCriteria, countByCriteria) - rely on `tracer.withSpan()`
-   - **Why**: Reactive operations are lazy - logging outside executes at definition time, not execution time
-   - **Correct Service**: `return repo.find(id).invoke(x -> Log.infof("Found: %s", x)).map(...)`
-   - **Incorrect Service**: `Log.info("Finding..."); return repo.find(id).map(...)`
-   - **See**: `LOGGING_STRATEGY.md` for full patterns and Jan Peremsky's philosophy
-8. **Project-Specific Standards**:
-   - Follows existing patterns in the codebase
-   - Uses explicit imports (no wildcards, no fully qualified names in code)
-   - YAML configuration format (no .properties files)
-   - Proper Mutiny reactive patterns
-   - Repository patterns (Domain vs Pure View)
+Comprehensive review of every change on the current branch since it diverged from `main`.
+Run this before opening a PR.
 
-After the review, provide:
-- Summary of findings with severity levels (Critical/High/Medium/Low)
-- Specific code locations with line numbers
-- Recommended fixes with code examples where applicable
-- Positive feedback on what was done well
+## Protocol
 
-Use the Task tool with subagent_type=code-review-mentor to perform this review.
+### 1. Establish the diff
+
+```bash
+git diff main...HEAD --stat
+git log main..HEAD --oneline
+```
+
+Review **all** commits on the branch, not just the most recent one.
+
+### 2. Delegate
+
+- **Always** launch the `code-reviewer` subagent over the full branch diff.
+- **Additionally**, if the branch touches visual output — anything under `frontend/src/ui/`,
+  `frontend/src/modules/**/components/`, `frontend/src/modules/**/pages/`, `src/index.css`,
+  or `src/app/` — launch the `ux-reviewer` subagent in parallel.
+- If the branch is backend-only, do not launch `ux-reviewer`.
+
+Hand each subagent the concrete file list and the branch's intent; they do not see this
+conversation.
+
+### 3. Report
+
+One merged report, severity-ordered, every finding with `file:line`:
+
+| Severity | Meaning |
+| -------- | ------- |
+| Critical | Broken behaviour, parity break, security issue — blocks the PR |
+| High     | Convention violation, missing test for new behaviour — fix before merge |
+| Medium   | Worth fixing, not blocking |
+| Low      | Style, nits |
+
+Close with what was done well.
+
+## Review areas
+
+1. **Correctness** — does it do what the branch set out to do
+2. **Parity invariants** — root `CLAUDE.md` "Critical invariants": bool-before-numeric,
+   availability ownership, `common/datetimes.py` types, explicit rule registration,
+   camelCase wire format, `Decimal` as JSON number
+3. **Conventions** — `.claude/specs/backend-conventions.md`,
+   `.claude/specs/frontend-conventions.md`, `.claude/specs/architecture-patterns.md`
+4. **Layering** — repositories take a `Session` and never open one; services own transactions;
+   routers never import a repository; `mqtt/` and `automation/` call services
+5. **Tests** — pytest against a real database (never mocked), Vitest with `fetch` stubbed at
+   the edge; new behaviour actually covered
+6. **Security** — input validated at the edge, no injection via raw SQL or shell
+7. **Scope creep** — **the most important check.** Flag anything touching
+   `docker-compose.yaml`, Flyway migrations, `.github/workflows/`, or `backend/` that the
+   branch did not explicitly set out to change. A push to `main` deploys to production.
+
+`backend/` (Quarkus) is a read-only behavioural reference — not built, not tested, not
+deployed. Do not review it as active code.
+
+Do not create the PR and do not push. This command reviews only.

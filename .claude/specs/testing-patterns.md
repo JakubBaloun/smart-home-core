@@ -1,5 +1,12 @@
 # Testing Patterns
 
+> Two independent suites: **pytest** for `backend-python/`, **Vitest** for `frontend/`. They
+> share no tooling and run separately; both gate the deploy workflow.
+>
+> Backend first, then [Frontend tests (Vitest)](#frontend-tests-vitest).
+
+# Backend — pytest
+
 > pytest conventions as they exist in `backend-python/tests/`. There is one suite — no unit /
 > integration split, no `*IT` equivalent, and nothing is skipped by default.
 
@@ -195,12 +202,116 @@ Prefer one parametrised test over five near-identical ones.
 - `/q/health`, which the frontend does not consume
 - Quarkus framework-supplied health checks, which have no Python equivalent
 
+# Frontend tests (Vitest)
+
+> Vitest + Testing Library in `frontend/`. Tests sit **next to the code they test**
+> (`src/modules/devices/api/devices.test.ts`), not in a mirrored `__tests__/` tree.
+
+## Running
+
+```bash
+cd frontend
+npm test                  # vitest run — single pass, what CI runs
+npx vitest                # watch mode during development
+npx vitest devices        # by file-name substring
+npm run lint              # oxlint
+npm run build             # tsc -b && vite build — type errors fail here, not in vitest
+```
+
+`npm test` is `vitest run`, so it exits rather than watching. There is no coverage gate.
+
+## Configuration
+
+There is no `vitest.config.ts` — the `test` block lives in `vite.config.ts`, which imports
+`defineConfig` from `vitest/config` rather than `vite`:
+
+```ts
+test: {
+  environment: 'jsdom',
+  setupFiles: ['./src/test-setup.ts'],
+}
+```
+
+`src/test-setup.ts` is three lines and does exactly two things — pull in
+`@testing-library/jest-dom/vitest` matchers, and `afterEach(cleanup)`. Keep it that way; global
+fixtures belong in the test file that needs them.
+
+The `@/` alias (`resolve.alias` → `./src`) works in tests too. Import shared modules as
+`@/api/client`, and the module under test by relative path (`./devices`) — that is the existing
+split.
+
+## What is tested
+
+Pure logic and the API-client boundary, plus component behaviour where it is not trivial.
+
+| Kind             | Example                                     |
+| ---------------- | ------------------------------------------- |
+| API clients      | `modules/devices/api/devices.test.ts`       |
+| Pure functions   | `modules/recipes/lib/portionScaling.test.ts` |
+| Components       | `modules/devices/components/DeviceCard.test.tsx` |
+| Hooks            | `modules/recipes/cook/hooks/useCountdownTimer.test.ts` |
+
+`describe` + `it` with explicit imports from `vitest` — nothing is injected as a global, so
+`import { describe, expect, it, vi } from 'vitest'` appears at the top of every file.
+
+## Faking the edges
+
+Same posture as the backend: only the outbound edge is faked. For the frontend that edge is
+`fetch`, and the tool is `vi.stubGlobal` — not a mocked `apiFetch`, and not MSW.
+
+```ts
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn())
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+it('getDevices returns the parsed device list', async () => {
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify(devices), { status: 200 }))
+
+  const result = await getDevices()
+
+  expect(fetch).toHaveBeenCalledWith('/api/devices', expect.any(Object))
+  expect(result).toEqual(devices)
+})
+```
+
+- Stub with a real `Response`, so status handling in `api/client.ts` is genuinely exercised
+- Assert the **called URL**, not just the return value — the `/api` prefix is added inside
+  `apiFetch` and a wrong path is the failure this catches
+- Assert `ApiError` on non-2xx (`rejects.toBeInstanceOf(ApiError)`), and remember that 202 and
+  204 resolve to `undefined` by design
+- Payloads are camelCase, matching the backend wire format — a test asserting snake_case is
+  asserting the wrong contract
+
+`vi.useFakeTimers()` is the mechanism for timer hooks (`useCountdownTimer`, `StepTimer`); pair
+it with `vi.useRealTimers()` in cleanup.
+
+## Component tests
+
+`render` from `@testing-library/react`, queried by role and accessible name rather than by class
+or test id. `afterEach(cleanup)` is already global, so tests do not unmount by hand.
+
+Components using `<Link>`/`useRoutes` need a router wrapper (`MemoryRouter`) — that is a per-test
+concern, not something to hoist into `test-setup.ts`.
+
+Do not assert on Tailwind class strings as a proxy for appearance. Class names are an
+implementation detail of the token system; visual review is `ux-reviewer`'s job and
+`frontend-conventions.md`'s checklist, not Vitest's.
+
 ## CI
 
-Both `deploy.yml` (pushes to `main`) and `python-ci.yml` (pull requests only) run the same thing:
-start a throwaway `postgres:17` on a dedicated Docker network, build the image's `test` stage,
-and run `pytest -q` with the checkout mounted over `/app` — the runtime image ships without
-`tests/`. Building the `test` stage doubles as a Dockerfile check.
+`deploy.yml` (pushes to `main`) gates on **both** suites; `python-ci.yml` (pull requests only)
+runs pytest.
 
-The two workflows must never fire on the same event; `deploy.yml` already gates on the suite, so
-a push-triggered CI run would only duplicate it.
+The backend job starts a throwaway `postgres:17` on a dedicated Docker network, builds the
+image's `test` stage, and runs `pytest -q` with the checkout mounted over `/app` — the runtime
+image ships without `tests/`. Building the `test` stage doubles as a Dockerfile check.
+
+The frontend job runs `npm ci` then `npm test`; `npm run build` runs as part of the image build,
+so type errors surface there.
+
+`deploy.yml` and `python-ci.yml` must never fire on the same event; `deploy.yml` already gates on
+the suite, so a push-triggered CI run would only duplicate it.

@@ -4,68 +4,44 @@ description: Create implementation plan with research backing
 
 # Implementation Plan: $ARGUMENTS
 
-Create a detailed implementation plan suitable for architectural review.
+Produce a reviewable implementation plan. **No code is written by this command.**
 
-## Planning Protocol
+## Protocol
 
-### 1. Research First
-Before planning, mentally run `/research $ARGUMENTS`:
-- Understand existing patterns
-- Identify affected files and services
-- Note architectural constraints
+### 1. Delegate to the architect
 
-### 2. Identify Scope
-List all affected components:
-- Services to modify
-- Files to create/edit
-- Tests to add
+Launch the `architect` subagent with the request. It is the owner of this command's output —
+it reads root `CLAUDE.md`, `.claude/CLAUDE.md` and the relevant existing module before
+proposing anything, and returns the plan in a fixed structure.
 
-### 3. Break Into Steps
-Create numbered implementation steps:
-- Each step should be independently testable
-- Order by dependencies
-- Estimate complexity (simple/medium/complex)
+Brief it properly: it does not see this conversation. Include the request verbatim, any
+constraints already discussed, and anything already ruled out.
 
-### 4. Risk Assessment
-Identify potential issues:
-- Breaking changes
-- Performance implications
-- Security considerations
+If the task genuinely has one obvious implementation (a typo, a single-line fix, a rename),
+say so and skip the subagent — the plan would be overhead.
 
-### 5. Output Format
+### 2. Fill gaps
 
----
+If the plan needs current facts about an external library (FastAPI, SQLAlchemy, paho-mqtt,
+influxdb-client, Zigbee2MQTT, React, Vite, Tailwind v4), launch the `researcher` subagent
+rather than relying on training data.
 
-## Plan: [feature/task name]
+### 3. Present
 
-### Summary
-1-2 sentence overview of what will be implemented.
+Present the architect's plan as-is. Expected shape:
 
-### Affected Services
-- [ ] Service name - What changes
+- **Summary** — one paragraph
+- **Affected areas** — `backend-python/app/<module>`, `frontend/src/modules/<module>`, infra
+- **Approach** — concrete enough to implement without re-deciding architecture
+- **Open questions** — genuine ambiguities, not guesses
+- **Infra/production impact** — explicit yes/no
+- **Test plan** — pytest against a real DB, Vitest for the frontend
 
-### Implementation Steps
+### 4. Stop
 
-1. **Step name** (complexity)
-   - File: `path/to/file.java`
-   - Changes: What to modify
-   - Tests: What to test
+Present the plan for approval and **stop**. Do not hand off to `be-dev`/`fe-dev` in the same
+turn.
 
-2. **Next step** (complexity)
-   ...
-
-### Risks & Mitigations
-| Risk | Mitigation |
-|------|------------|
-| Risk description | How to address |
-
-### Success Criteria
-- [ ] Criterion 1
-- [ ] Criterion 2
-
-### Open Questions
-Questions for the user before proceeding.
-
----
-
-**Note:** Present this plan for approval before implementation.
+If the plan is marked **REQUIRES EXPLICIT APPROVAL** (it touches `docker-compose.yaml`, Flyway
+migrations, env vars, `.github/workflows/`, or deployment), say so prominently. A push to
+`main` deploys to production — there is no staging.

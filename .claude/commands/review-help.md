@@ -1,56 +1,72 @@
-# Code Review Commands - Quick Reference
-
-## Available Commands
-
-### 📋 `/review-pr`
-**Full PR review before Azure DevOps submission**
-- Reviews all changes since branch diverged from main
-- Comprehensive analysis of code quality, security, best practices
-- Use this before creating any pull request
-
-### ⚡ `/review-commit`
-**Quick review of recent changes**
-- Reviews only the latest commit or staged changes
-- Faster feedback for iterative development
-- Use this during active coding
-
-### ❓ `/review-help`
-**Show this help message**
-
+---
+description: Quick reference for the review and planning commands
 ---
 
-## Typical Workflow
+# Review commands — quick reference
+
+## Commands
+
+### `/review-commit`
+Quick review of the latest commit, or of staged changes if there are any. Use during active
+development, before committing.
+
+### `/review-pr`
+Comprehensive review of the whole branch against `main`. Use before opening a PR.
+
+### `/plan <feature>`
+Reviewable implementation plan via the `architect` subagent. No code is written.
+
+### `/research <topic>`
+Compress what the codebase and specs already say about a topic. No code is written.
+
+### `/review-help`
+This message.
+
+## Which subagents get launched
+
+| Diff contains                    | Subagents |
+| -------------------------------- | --------- |
+| Backend only                     | `code-reviewer` |
+| Frontend, no visual change       | `code-reviewer` |
+| Frontend with visual change      | `code-reviewer` + `ux-reviewer` |
+
+"Visual change" means `frontend/src/ui/`, `frontend/src/modules/**/components/`,
+`frontend/src/modules/**/pages/`, `src/index.css`, or `src/app/`.
+
+## Typical workflow
 
 ```
-1. Make code changes
-2. Run /review-commit for quick feedback
-3. Address any issues
-4. Commit your changes
-5. Before creating PR: Run /review-pr
-6. Address Critical/High severity issues
-7. Create PR in Azure DevOps
+1. /research <topic>      — understand what already exists
+2. /plan <feature>        — get an architect plan, approve it
+3. implement              — be-dev / fe-dev
+4. /review-commit         — quick feedback while iterating
+5. /review-pr             — before opening the PR
 ```
 
-## Review Focus Areas
+## Focus areas
 
-- **Code Quality**: Design patterns, SOLID principles, organization
-- **Security**: Vulnerabilities, validation, authentication
-- **Best Practices**: Java/Quarkus conventions, reactive patterns
-- **Testing**: Coverage, quality, edge cases
-- **Performance**: Queries, reactive chains, N+1 problems
-- **Documentation**: JavaDoc, comments
-- **Reactive Logging**: Logging MUST be inside reactive chains (`.invoke()`)
-  - ❌ Wrong: `Log.info("msg"); return uni.map(...)`
-  - ✅ Right: `return uni.invoke(x -> Log.info("msg")).map(...)`
-- **Project Standards**: Imports, config format, patterns
+- **Correctness** — does it do what was asked
+- **Parity invariants** — bool-before-numeric, availability ownership,
+  `common/datetimes.py` types, explicit rule registration, camelCase wire format
+- **Conventions** — `.claude/specs/backend-conventions.md`, `frontend-conventions.md`,
+  `architecture-patterns.md`
+- **Tests** — pytest against a real database (never mocked), Vitest with `fetch` stubbed
+- **Security** — validation at the edge, no injection
+- **Scope creep** — changes to `docker-compose.yaml`, Flyway migrations,
+  `.github/workflows/`, or `backend/` that were not asked for
 
-## Severity Levels
+## Severity levels
 
-- 🔴 **Critical**: Must fix before PR (security, bugs, breaking changes)
-- 🟠 **High**: Should fix before PR (quality issues, bad practices)
-- 🟡 **Medium**: Consider fixing (improvements, minor issues)
-- 🟢 **Low**: Nice to have (style, minor optimizations)
+- **Critical** — broken behaviour, parity break, security issue; blocks the commit/PR
+- **High** — convention violation, missing test for new behaviour; fix before merge
+- **Medium** — worth fixing, not blocking
+- **Low** — style, nits
 
----
+## Notes
 
-For more details, see: `.claude/commands/README.md`
+- `backend/` (Quarkus) is a **read-only behavioural reference** — not built, not tested, not
+  deployed. It is never reviewed as active code.
+- A push to `main` deploys to production. There is no staging.
+- Review commands never commit, push, or open PRs.
+
+See `.claude/commands/README.md` for more.

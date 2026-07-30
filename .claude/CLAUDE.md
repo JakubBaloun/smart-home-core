@@ -70,17 +70,36 @@ actually there, not what would be ideal — follow it when writing code, and upd
 code changes. `reactive-patterns.md` was deleted rather than translated: the port is deliberately
 synchronous and had no Mutiny equivalent; `architecture-patterns.md` replaces it.
 
-| Spec                       | Contents                                                     |
-| -------------------------- | ------------------------------------------------------------ |
-| `coding-standards.md`      | Python style, typing, docstrings, package layout, Flyway      |
-| `architecture-patterns.md` | Sync architecture, layering, sessions, wiring, parity contract |
-| `mqtt-patterns.md`         | paho-mqtt, Zigbee2MQTT topics, consumers, commands            |
-| `testing-patterns.md`      | pytest, testcontainers, TestClient, monkeypatch               |
-| `git-workflow.md`          | Commit format, PR rules (language-agnostic)                   |
+| Spec                        | Contents                                                     |
+| --------------------------- | ------------------------------------------------------------ |
+| `backend-conventions.md`    | Python style, typing, docstrings, package layout, Flyway      |
+| `frontend-conventions.md`   | Modules, tokens, routing, kiosk isolation, review checklist   |
+| `architecture-patterns.md`  | Sync architecture, layering, sessions, wiring, parity contract |
+| `mqtt-patterns.md`          | paho-mqtt, Zigbee2MQTT topics, consumers, commands            |
+| `testing-patterns.md`       | pytest + testcontainers (backend), Vitest (frontend)          |
+| `git-workflow.md`           | Commit format, PR rules (language-agnostic)                   |
 
 `backend-python/README.md` is the authoritative port document: it carries the running log of
 ambiguities found in the Quarkus code and how each was resolved. Add to it rather than
 re-deriving them.
+
+## Subagents
+
+`.claude/agents/` holds the role definitions. Plan before implementing; review after.
+
+| Agent           | When to use                                                                 |
+| --------------- | --------------------------------------------------------------------------- |
+| `architect`     | Non-trivial or cross-module work, or anything that could touch compose files, migrations or deployment — **before** any code |
+| `be-dev`        | Implementing in `backend-python/` (endpoints, services, consumers, rules)    |
+| `fe-dev`        | Implementing in `frontend/` (pages, components, routes, API clients)         |
+| `code-reviewer` | Independent review after `be-dev`/`fe-dev` finish non-trivial work           |
+| `ux-reviewer`   | After any frontend change with visual output, against `frontend/DESIGN.md`   |
+| `researcher`    | Authoritative external-library facts (FastAPI, SQLAlchemy, paho-mqtt, React) |
+
+Skip `architect` for typo fixes, one-line bug fixes, and tasks with one obvious
+implementation — those go straight to `be-dev`/`fe-dev`. `/plan` delegates to `architect`;
+`/review-commit` and `/review-pr` delegate to `code-reviewer` (plus `ux-reviewer` on visual
+diffs).
 
 ## Critical Patterns (Quick Reference)
 

@@ -9,7 +9,7 @@ This skill automatically activates when detecting:
 - Implementation requests affecting multiple features
 - Changes in unfamiliar code areas
 - Questions about architectural patterns
-- Cross-cutting concerns (MQTT, reactive patterns, database access)
+- Cross-cutting concerns (MQTT, event bus, automation rules, database access)
 
 ## Activation Criteria
 
@@ -18,7 +18,8 @@ This skill automatically activates when detecting:
 - "Add capability similar to [existing feature]"
 - "How does [pattern] work in this codebase?"
 - Changes touching device + telemetry + mqtt together
-- Complex reactive chains or MQTT integration questions
+- Changes spanning `backend-python/` and `frontend/` together
+- MQTT integration, event-bus or automation-rule questions
 
 **DO NOT activate for:**
 - Simple bug fixes in one file
@@ -39,17 +40,24 @@ Search for existing patterns that match the request:
 ### 2. Check Architecture Patterns
 Reference pattern specs in `.claude/specs/`:
 - `architecture-patterns.md` - Layering, sessions, wiring, Quarkus parity contract
-- `mqtt-patterns.md` - MQTT integration patterns
-- `testing-patterns.md` - Test patterns
-- `coding-standards.md` - General conventions
+- `mqtt-patterns.md` - paho-mqtt / Zigbee2MQTT integration patterns
+- `testing-patterns.md` - pytest (backend) and Vitest (frontend) patterns
+- `backend-conventions.md` - Python style, typing, package layout
+- `frontend-conventions.md` - Modules, tokens, routing, API layer
 
 ### 3. Identify Affected Features
 Determine which feature areas are affected:
+
+Backend (`backend-python/app/`):
 - Device management (`device/`)
 - Telemetry pipeline (`telemetry/`)
+- Recipes and tags (`recipe/`)
 - Automation rules (`automation/`)
 - MQTT integration (`mqtt/`)
 - Common infrastructure (`common/`)
+
+Frontend (`frontend/src/modules/`):
+- `devices/`, `temperature/`, `recipes/` (including kiosk cook mode)
 
 ### 4. Summarize Before Proceeding
 Provide a brief summary:
@@ -73,8 +81,9 @@ The commands provide explicit, comprehensive research.
 
 **Good activation:**
 - "Add MQTT consumer for telemetry data similar to device consumer"
-- "Implement reactive repository for telemetry like device repository"
+- "Implement a repository for telemetry like the device repository"
 - "How do we handle MQTT reconnection in this codebase?"
+- "Add a new feature module to the frontend rail"
 
 **Should NOT activate:**
 - "Add getter for name field" (too simple)
