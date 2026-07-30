@@ -17,3 +17,8 @@ export interface DeviceCommandRequest {
   command: 'setState' | 'setBrightness' | 'setColorTemp' | 'raw'
   payload: Record<string, unknown>
 }
+
+export interface UpdateDeviceRequest {
+  friendlyName: string
+  type: DeviceType
+}

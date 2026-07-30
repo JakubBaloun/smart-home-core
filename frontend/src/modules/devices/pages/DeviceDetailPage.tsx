@@ -1,23 +1,31 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { usePolling } from '@/hooks/usePolling'
 import { Button } from '@/ui/Button'
 import { Loading } from '@/ui/Loading'
 import { PageHeader } from '@/ui/PageHeader'
-import { labelClasses } from '@/ui/field'
-import { getDevice, sendCommand } from '../api/devices'
+import { fieldClasses, labelClasses } from '@/ui/field'
+import { deleteDevice, getDevice, sendCommand, updateDevice } from '../api/devices'
 import { getLatestTelemetry, getTelemetryHistory } from '../api/telemetry'
 import { TelemetryChart } from '../components/TelemetryChart'
+import type { DeviceType, UpdateDeviceRequest } from '../types/device'
 import type { TimeRange } from '../types/telemetry'
 
 const REFRESH_INTERVAL_MS = 15_000
 const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '7d']
+const DEVICE_TYPES: DeviceType[] = ['LIGHT', 'SENSOR', 'SWITCH', 'PLUG', 'OTHER']
 
 export function DeviceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const deviceId = Number(id)
+  const navigate = useNavigate()
   const [range, setRange] = useState<TimeRange>('24h')
   const [sending, setSending] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [form, setForm] = useState<UpdateDeviceRequest | null>(null)
 
   const { data: device, error: deviceError, refresh: refreshDevice } = usePolling(
     () => getDevice(deviceId),
@@ -49,6 +57,48 @@ export function DeviceDetailPage() {
     await sendCommand(device.id, { command: 'setBrightness', payload: { brightness } })
   }
 
+  const handleStartEdit = () => {
+    if (!device) return
+    setForm({ friendlyName: device.friendlyName, type: device.type })
+    setEditError(null)
+    setEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setEditing(false)
+    setForm(null)
+    setEditError(null)
+  }
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!device || !form) return
+    setEditError(null)
+    setSaving(true)
+    try {
+      await updateDevice(device.id, form)
+      await refreshDevice()
+      setEditing(false)
+      setForm(null)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to save device')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!device) return
+    if (!window.confirm(`Delete "${device.friendlyName}"? This cannot be undone.`)) return
+    setDeleting(true)
+    try {
+      await deleteDevice(device.id)
+      navigate('/')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (deviceError) {
     return <p className="p-6 text-danger">Failed to load device: {deviceError.message}</p>
   }
@@ -68,17 +118,77 @@ export function DeviceDetailPage() {
         }
         back={{ to: '/', label: 'Devices' }}
         actions={
-          <span
-            className={`rounded-full border px-3 py-1 text-sm ${
-              device.available
-                ? 'border-ok/40 bg-ok/10 text-ok'
-                : 'border-line text-ink-faint'
-            }`}
-          >
-            {device.available ? 'Online' : 'Offline'}
-          </span>
+          <>
+            <span
+              className={`rounded-full border px-3 py-1 text-sm ${
+                device.available
+                  ? 'border-ok/40 bg-ok/10 text-ok'
+                  : 'border-line text-ink-faint'
+              }`}
+            >
+              {device.available ? 'Online' : 'Offline'}
+            </span>
+            {!editing && (
+              <Button variant="neutral" onClick={handleStartEdit}>
+                Edit
+              </Button>
+            )}
+            <Button variant="danger" disabled={deleting} onClick={handleDelete}>
+              Delete
+            </Button>
+          </>
         }
       />
+
+      {editing && form && (
+        <form
+          onSubmit={handleSaveEdit}
+          className="mt-4 max-w-md space-y-4 rounded-2xl border border-line bg-surface-raised p-4"
+        >
+          <div>
+            <label htmlFor="friendlyName" className={labelClasses}>
+              Friendly name
+            </label>
+            <input
+              id="friendlyName"
+              type="text"
+              required
+              value={form.friendlyName}
+              onChange={(e) => setForm({ ...form, friendlyName: e.target.value })}
+              className={`w-full ${fieldClasses}`}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="type" className={labelClasses}>
+              Type
+            </label>
+            <select
+              id="type"
+              value={form.type}
+              onChange={(e) => setForm({ ...form, type: e.target.value as DeviceType })}
+              className={`w-full ${fieldClasses}`}
+            >
+              {DEVICE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {editError && <p className="text-danger">{editError}</p>}
+
+          <div className="flex gap-3">
+            <Button type="submit" variant="primary" disabled={saving}>
+              Save Changes
+            </Button>
+            <Button type="button" variant="neutral" disabled={saving} onClick={handleCancelEdit}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
 
       {device.type === 'LIGHT' || device.type === 'SWITCH' || device.type === 'PLUG' ? (
         <div className="mt-2 flex gap-3">
