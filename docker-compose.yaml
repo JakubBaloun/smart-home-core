@@ -38,27 +38,55 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d smarthome"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Flyway used to run inside the Quarkus app (QUARKUS_FLYWAY_MIGRATE_AT_START).
+  # The Python backend deliberately does not own the schema, so migrations run
+  # here as a one-shot job that the app waits for.
+  smart-home-flyway:
+    image: flyway/flyway:11-alpine
+    container_name: smart-home-flyway
+    depends_on:
+      smart-home-db:
+        condition: service_healthy
+    volumes:
+      - ./backend/src/main/resources/db/migration:/flyway/sql:ro
+    command: >
+      -url=jdbc:postgresql://smart-home-db:5432/smarthome
+      -user=${DB_USERNAME}
+      -password=${DB_PASSWORD}
+      -connectRetries=30
+      -baselineOnMigrate=true
+      migrate
 
   smart-home-app:
-    image: smart-home-app:latest
+    image: smart-home-py:latest
     container_name: smart-home-app
     restart: always
     depends_on:
-      - smart-home-db
-      - influxdb
-      - mqtt-broker
+      smart-home-flyway:
+        condition: service_completed_successfully
+      influxdb:
+        condition: service_started
+      mqtt-broker:
+        condition: service_started
     environment:
-      - QUARKUS_DATASOURCE_JDBC_URL=${DB_JDBC_URL}
-      - QUARKUS_DATASOURCE_REACTIVE_URL=${DB_REACTIVE_URL}
-      - QUARKUS_DATASOURCE_USERNAME=${DB_USERNAME}
-      - QUARKUS_DATASOURCE_PASSWORD=${DB_PASSWORD}
-      - QUARKUS_FLYWAY_MIGRATE_AT_START=true
+      - DB_HOST=smart-home-db
+      - DB_PORT=5432
+      - DB_NAME=smarthome
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
       - INFLUXDB_URL=http://influxdb:8086
       - INFLUXDB_TOKEN=${INFLUX_TOKEN}
       - INFLUXDB_ORG=smart-home
       - INFLUXDB_BUCKET=telemetry
       - MQTT_HOST=mqtt-broker
       - MQTT_PORT=1883
+      - TZ=Europe/Prague
 
   smart-home-frontend:
     image: smart-home-frontend:latest
