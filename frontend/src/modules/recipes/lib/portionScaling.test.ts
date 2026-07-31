@@ -21,6 +21,19 @@ describe('formatAmount', () => {
 
   it('strips trailing zeros', () => {
     expect(formatAmount(2)).toBe('2')
-    expect(formatAmount(2.5)).toBe('2.5')
+    expect(formatAmount(0)).toBe('0')
+  })
+
+  it('renders small amounts as kitchen fractions', () => {
+    expect(formatAmount(2.5)).toBe('2½')
+    expect(formatAmount(0.25)).toBe('¼')
+    expect(formatAmount(1 / 3)).toBe('⅓')
+    expect(formatAmount(2 / 3)).toBe('⅔')
+    expect(formatAmount(1.75)).toBe('1¾')
+  })
+
+  it('keeps decimals for larger amounts, where a fraction glyph reads as noise', () => {
+    expect(formatAmount(12.5)).toBe('12.5')
+    expect(formatAmount(312.5)).toBe('312.5')
   })
 })

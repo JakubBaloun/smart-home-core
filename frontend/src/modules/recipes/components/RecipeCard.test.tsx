@@ -22,11 +22,17 @@ function renderCard(recipe: Recipe) {
 }
 
 describe('RecipeCard', () => {
-  it('shows the title and prep/cook time', () => {
+  it('shows the title and the total time', () => {
     renderCard(baseRecipe)
 
     expect(screen.getByText('Tomato Soup')).toBeInTheDocument()
-    expect(screen.getByText('Prep 10m · Cook 20m')).toBeInTheDocument()
+    expect(screen.getByText('30 min')).toBeInTheDocument()
+  })
+
+  it('omits the time when the recipe records none', () => {
+    renderCard({ ...baseRecipe, prepTimeMinutes: null, cookTimeMinutes: null })
+
+    expect(screen.queryByText(/min/)).not.toBeInTheDocument()
   })
 
   it('links to the recipe detail page', () => {

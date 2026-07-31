@@ -121,3 +121,46 @@ export function IconChevronLeft(props: IconProps) {
     </Icon>
   )
 }
+
+export function IconChevronRight(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m9.5 6 6 6-6 6" />
+    </Icon>
+  )
+}
+
+export function IconChevronUp(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m6 14.5 6-6 6 6" />
+    </Icon>
+  )
+}
+
+export function IconCheck(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="m5 12.5 4.5 4.5L19 7" />
+    </Icon>
+  )
+}
+
+export function IconClock(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </Icon>
+  )
+}
+
+export function IconServing(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 13.5a8 8 0 0 1 16 0z" />
+      <path d="M2.5 17h19" />
+      <path d="M12 5.5V3" />
+    </Icon>
+  )
+}

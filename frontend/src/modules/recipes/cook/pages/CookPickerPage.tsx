@@ -30,16 +30,16 @@ export function CookPickerPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-8">
+    <div className="h-full overflow-y-auto p-6 lg:p-10">
       <Link
         to="/"
-        className="inline-flex items-center gap-1 text-lg text-ink-muted transition hover:text-ink"
+        className="-my-2 inline-flex min-h-11 items-center gap-1 py-2 text-lg text-ink-muted transition hover:text-ink"
       >
         <IconHome className="size-5" />
         Dashboard
       </Link>
 
-      <h1 className="mt-4 mb-6 font-display text-4xl font-semibold tracking-tight text-ink">
+      <h1 className="mt-4 mb-6 font-display text-4xl font-semibold tracking-tight text-ink lg:text-5xl">
         What are we cooking?
       </h1>
 
@@ -55,8 +55,12 @@ export function CookPickerPage() {
 
       {loading && !page && <Loading label="Fetching recipes…" />}
 
-      {page && (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {page && page.items.length === 0 && (
+        <p className="text-lg text-ink-muted">Nothing matches that. Try a different search or tag.</p>
+      )}
+
+      {page && page.items.length > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {page.items.map((recipe) => (
             <CookRecipeCard key={recipe.id} recipe={recipe} />
           ))}

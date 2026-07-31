@@ -5,9 +5,11 @@ import { Button, ButtonLink } from '@/ui/Button'
 import { Chip } from '@/ui/Chip'
 import { Loading } from '@/ui/Loading'
 import { PageHeader } from '@/ui/PageHeader'
+import { IconClock, IconServing } from '@/ui/icons'
 import { deleteRecipe, getRecipe } from '../api/recipes'
 import { ServingsToggle } from '../components/ServingsToggle'
 import { formatAmount, scaleAmount } from '../lib/portionScaling'
+import { formatTotalTime, formatUnit } from '../lib/units'
 
 const REFRESH_INTERVAL_MS = 15_000
 
@@ -29,6 +31,7 @@ export function RecipeDetailPage() {
   }
 
   const targetServings = servings ?? recipe.servingsBase
+  const totalTime = formatTotalTime(recipe.prepTimeMinutes, recipe.cookTimeMinutes)
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete "${recipe.title}"? This cannot be undone.`)) return
@@ -61,13 +64,25 @@ export function RecipeDetailPage() {
         }
       />
 
-      {recipe.description && <p className="text-ink-muted">{recipe.description}</p>}
+      {recipe.description && <p className="max-w-2xl text-ink-muted">{recipe.description}</p>}
 
-      <p className="mt-2 font-mono text-sm text-ink-faint">
-        {recipe.prepTimeMinutes != null && `Prep ${recipe.prepTimeMinutes}m`}
-        {recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null && ' · '}
-        {recipe.cookTimeMinutes != null && `Cook ${recipe.cookTimeMinutes}m`}
-      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-sm text-ink-muted tabular-nums">
+        {totalTime && (
+          <span className="inline-flex items-center gap-1.5">
+            <IconClock className="size-4 text-ink-faint" />
+            {totalTime}
+            {recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null && (
+              <span className="text-ink-faint">
+                ({recipe.prepTimeMinutes} prep + {recipe.cookTimeMinutes} cook)
+              </span>
+            )}
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1.5">
+          <IconServing className="size-4 text-ink-faint" />
+          serves {recipe.servingsBase}
+        </span>
+      </div>
 
       {recipe.tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -77,47 +92,53 @@ export function RecipeDetailPage() {
         </div>
       )}
 
-      <div className="mt-6">
-        <ServingsToggle value={targetServings} onChange={setServings} />
-      </div>
-
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-        <div>
-          <h2 className="mb-3 font-display text-xl font-semibold text-ink">Ingredients</h2>
-          <ul className="space-y-2">
-            {recipe.ingredients.map((ingredient) => (
-              <li key={ingredient.id} className="text-ink">
-                <span className="font-mono tabular-nums">
-                  {formatAmount(scaleAmount(ingredient.amount, recipe.servingsBase, targetServings))}
-                  {ingredient.unit ? ` ${ingredient.unit.toLowerCase()}` : ''}
-                </span>{' '}
-                {ingredient.name}
-              </li>
-            ))}
+      <div className="mt-8 grid grid-cols-1 gap-6 pb-8 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        <section className="rounded-2xl border border-line bg-surface-raised p-5">
+          <h2 className="mb-4 font-display text-xl font-semibold text-ink">Ingredients</h2>
+          <ServingsToggle value={targetServings} onChange={setServings} />
+          <ul className="mt-4 space-y-2">
+            {recipe.ingredients.map((ingredient) => {
+              const unit = formatUnit(ingredient.unit)
+              return (
+                <li key={ingredient.id} className="flex gap-3 text-ink">
+                  <span className="w-24 shrink-0 text-right font-mono text-accent tabular-nums">
+                    {formatAmount(scaleAmount(ingredient.amount, recipe.servingsBase, targetServings))}
+                    {unit && <span className="text-ink-muted"> {unit}</span>}
+                  </span>
+                  {ingredient.name}
+                </li>
+              )
+            })}
           </ul>
-        </div>
+        </section>
 
-        <div>
-          <h2 className="mb-3 font-display text-xl font-semibold text-ink">Steps</h2>
+        <section>
+          <h2 className="mb-4 font-display text-xl font-semibold text-ink">Steps</h2>
           <ol className="space-y-3">
             {recipe.steps.map((step) => (
-              <li key={step.id} className="text-ink">
-                <span className="font-medium">
-                  {step.stepNumber}. {step.title}
+              <li
+                key={step.id}
+                className="flex gap-4 rounded-2xl border border-line bg-surface-raised p-4"
+              >
+                <span className="font-mono text-lg text-ink-faint tabular-nums">
+                  {step.stepNumber}
                 </span>
-                <p className="text-ink-muted">{step.content}</p>
+                <div className="min-w-0">
+                  {step.title && <p className="font-display font-medium text-ink">{step.title}</p>}
+                  <p className="whitespace-pre-line text-ink-muted">{step.content}</p>
+                </div>
               </li>
             ))}
           </ol>
-        </div>
-      </div>
 
-      {recipe.notes && (
-        <div className="mt-8">
-          <h2 className="mb-2 font-display text-xl font-semibold text-ink">Notes</h2>
-          <p className="text-ink-muted">{recipe.notes}</p>
-        </div>
-      )}
+          {recipe.notes && (
+            <div className="mt-6 rounded-2xl border border-line bg-surface-sunken p-4">
+              <h3 className="mb-1 font-mono text-xs tracking-widest text-ink-faint uppercase">Notes</h3>
+              <p className="whitespace-pre-line text-ink-muted">{recipe.notes}</p>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }

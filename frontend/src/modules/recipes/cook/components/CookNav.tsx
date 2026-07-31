@@ -3,13 +3,11 @@ import { IconChevronLeft } from '@/ui/icons'
 
 export function CookNav({
   canGoBack,
-  canGoForward,
   isLastStep,
   onBack,
   onForward,
 }: {
   canGoBack: boolean
-  canGoForward: boolean
   isLastStep: boolean
   onBack: () => void
   onForward: () => void
@@ -21,15 +19,13 @@ export function CookNav({
         Recipe list
       </ButtonLink>
 
-      <div className="flex gap-4">
-        <Button variant="neutral" size="lg" disabled={!canGoBack} onClick={onBack} className="min-w-32">
+      <div className="flex gap-3">
+        <Button variant="neutral" size="lg" disabled={!canGoBack} onClick={onBack} className="min-w-28">
           Back
         </Button>
-        {canGoForward && (
-          <Button variant="primary" size="lg" onClick={onForward} className="min-w-32">
-            {isLastStep ? 'Finish' : 'Next'}
-          </Button>
-        )}
+        <Button variant="primary" size="lg" onClick={onForward} className="min-w-36">
+          {isLastStep ? 'Finish' : 'Next'}
+        </Button>
       </div>
     </div>
   )

@@ -66,15 +66,7 @@ export function StepListEditor({
             onChange={(e) => update(index, { content: e.target.value })}
             placeholder="What to do..."
             rows={2}
-            className={`mb-2 w-full ${compactField}`}
-          />
-          <input
-            type="number"
-            min={1}
-            value={step.timerSeconds ?? ''}
-            onChange={(e) => update(index, { timerSeconds: e.target.value ? Number(e.target.value) : null })}
-            placeholder="Timer (seconds, optional)"
-            className={`w-48 font-mono ${compactField}`}
+            className={`w-full ${compactField}`}
           />
         </div>
       ))}
