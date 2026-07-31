@@ -35,12 +35,16 @@ No new backend endpoints. Reuses, unchanged from the previous version:
 `frontend/src/modules/roomMap/config/rooms.ts`:
 
 ```ts
+export type RoomEdge = "top" | "right" | "bottom" | "left";
+
 export interface RoomRect {
   /** All four values are percentages (0-100) of the floor plan container. */
   top: number;
   left: number;
   width: number;
   height: number;
+  /** Edges to render without a border, e.g. an open passage to a neighboring rect (no wall/door there). */
+  openEdges?: RoomEdge[];
 }
 
 export interface RoomConfig {
@@ -64,7 +68,12 @@ export const rooms: RoomConfig[] = [
     id: "kitchen",
     label: "Kuchyně",
     sensorFriendlyName: null,
-    rects: [{ top: 0, left: 26.7, width: 20, height: 37.5 }],
+    // Split so the sliver above the hallway connector can go without a bottom/left border — same
+    // room on both sides of that internal seam, and the doorway down into the hallway is open.
+    rects: [
+      { top: 0, left: 26.7, width: 16, height: 37.5, openEdges: ["right"] },
+      { top: 0, left: 42.7, width: 4, height: 37.5, openEdges: ["left", "bottom"] },
+    ],
   },
   {
     id: "wc",
@@ -82,10 +91,12 @@ export const rooms: RoomConfig[] = [
     id: "hallway",
     label: "Chodba",
     sensorFriendlyName: null,
-    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along Koupelna's right side.
+    // L-shaped: main strip split at the connector's width so that seam and the doorway up into the
+    // kitchen can go without a border — no wall/door at either, it's one open room.
     rects: [
-      { top: 75, left: 26.7, width: 20, height: 25 },
-      { top: 37.5, left: 42.7, width: 4, height: 37.5 },
+      { top: 75, left: 26.7, width: 16, height: 25, openEdges: ["right"] },
+      { top: 75, left: 42.7, width: 4, height: 25, openEdges: ["left", "top"] },
+      { top: 37.5, left: 42.7, width: 4, height: 37.5, openEdges: ["top", "bottom"] },
     ],
   },
   {
@@ -119,8 +130,15 @@ container width. Each room renders one absolutely positioned box per entry in it
 each using that entry's `top`/`left`/`width`/`height` as inline percentages. Because every wall in
 the real apartment is axis-aligned, plain absolutely positioned `div`s reproduce the shapes
 exactly — no SVG needed. A room is rectangular in the common case (`rects` has one entry); the
-hallway is L-shaped (it wraps around Koupelna to reach the kitchen), so its `rects` has two: the
-main strip and a narrow connector.
+hallway is L-shaped (it wraps around Koupelna to reach the kitchen), so its `rects` has three (the
+main strip is itself split at the connector's width — see below).
+
+Where two rects meet with no actual wall between them — either two rects of the same room (an
+internal seam that's just an artifact of expressing an L-shape as separate boxes) or an open
+doorway between two different rooms (the hallway/kitchen connector) — the touching edge on each
+side is listed in that rect's `openEdges` and rendered without a border. This is why the kitchen
+is also split into two rects: only the sliver above the connector needs its bottom and left edges
+open, the rest of the kitchen's border is unaffected.
 
 Nesting (WC and Koupelna sitting inside the Kuchyně/Chodba column) falls out naturally from the
 percentage coordinates; no parent/child DOM nesting is required, all seven rooms are siblings
@@ -149,7 +167,8 @@ blueprint/floor plan, not another panel of tiles:
   `RoomReading[]` = `{ room: RoomConfig, temperature?: number, humidity?: number }`.
 - `frontend/src/modules/roomMap/components/RoomShape.tsx` — replaces `RoomTile.tsx`. Renders one
   absolutely positioned `div` per entry in `reading.room.rects`, each with `aria-label`/`title` set
-  to `reading.room.label` for accessibility (not visibly rendered). The reading text
+  to `reading.room.label` for accessibility (not visibly rendered), and with a `border-{t,r,b,l}`
+  class per edge except those listed in that rect's `openEdges`. The reading text
   (`temperature`/`humidity`, when present) is rendered only inside the first rect, styled per
   "Visual style" above, so a multi-rect room doesn't show the number twice.
 - `frontend/src/modules/roomMap/pages/RoomMapPage.tsx` — polls `getRoomReadings()` every 15s via

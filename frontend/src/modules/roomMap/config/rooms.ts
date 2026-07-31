@@ -1,9 +1,13 @@
+export type RoomEdge = 'top' | 'right' | 'bottom' | 'left'
+
 export interface RoomRect {
   /** All four values are percentages (0-100) of the floor plan container. */
   top: number
   left: number
   width: number
   height: number
+  /** Edges to render without a border, e.g. an open passage to a neighboring rect (no wall/door there). */
+  openEdges?: RoomEdge[]
 }
 
 export interface RoomConfig {
@@ -27,7 +31,12 @@ export const rooms: RoomConfig[] = [
     id: 'kitchen',
     label: 'Kuchyně',
     sensorFriendlyName: null,
-    rects: [{ top: 0, left: 26.7, width: 20, height: 37.5 }],
+    // Split so the sliver above the hallway connector can go without a bottom/left border — same
+    // room on both sides of that internal seam, and the doorway down into the hallway is open.
+    rects: [
+      { top: 0, left: 26.7, width: 16, height: 37.5, openEdges: ['right'] },
+      { top: 0, left: 42.7, width: 4, height: 37.5, openEdges: ['left', 'bottom'] },
+    ],
   },
   {
     id: 'wc',
@@ -45,10 +54,12 @@ export const rooms: RoomConfig[] = [
     id: 'hallway',
     label: 'Chodba',
     sensorFriendlyName: null,
-    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along Koupelna's right side.
+    // L-shaped: main strip split at the connector's width so that seam and the doorway up into the
+    // kitchen can go without a border — no wall/door at either, it's one open room.
     rects: [
-      { top: 75, left: 26.7, width: 20, height: 25 },
-      { top: 37.5, left: 42.7, width: 4, height: 37.5 },
+      { top: 75, left: 26.7, width: 16, height: 25, openEdges: ['right'] },
+      { top: 75, left: 42.7, width: 4, height: 25, openEdges: ['left', 'top'] },
+      { top: 37.5, left: 42.7, width: 4, height: 37.5, openEdges: ['top', 'bottom'] },
     ],
   },
   {

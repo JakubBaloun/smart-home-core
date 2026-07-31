@@ -61,4 +61,20 @@ describe('RoomShape', () => {
     expect(shapes[0]).toHaveStyle({ top: '75%', left: '26.7%', width: '20%', height: '25%' })
     expect(shapes[1]).toHaveStyle({ top: '37.5%', left: '42.7%', width: '4%', height: '37.5%' })
   })
+
+  it('omits the border on a rect edge listed in openEdges, an open passage with no wall', () => {
+    const roomWithOpenEdge: RoomConfig = {
+      ...room,
+      rects: [{ top: 0, left: 66.6, width: 33.4, height: 100, openEdges: ['top', 'left'] }],
+    }
+    const reading: RoomReading = { room: roomWithOpenEdge }
+
+    render(<RoomShape reading={reading} />)
+
+    const shape = screen.getByTestId('room-shape')
+    expect(shape).not.toHaveClass('border-t')
+    expect(shape).not.toHaveClass('border-l')
+    expect(shape).toHaveClass('border-r')
+    expect(shape).toHaveClass('border-b')
+  })
 })
