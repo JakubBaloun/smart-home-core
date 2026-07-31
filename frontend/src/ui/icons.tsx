@@ -104,6 +104,17 @@ export function IconCube(props: IconProps) {
   )
 }
 
+export function IconLayoutGrid(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.5" />
+      <rect x="13" y="3.5" width="7.5" height="7.5" rx="1.5" />
+      <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.5" />
+      <rect x="13" y="13" width="7.5" height="7.5" rx="1.5" />
+    </Icon>
+  )
+}
+
 export function IconThermometer(props: IconProps) {
   return (
     <Icon {...props}>
