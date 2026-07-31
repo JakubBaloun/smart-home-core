@@ -41,10 +41,10 @@ describe('getRoomReadings', () => {
     )
 
     const readings = await getRoomReadings()
-    const bedroom = readings.find((r) => r.room.id === 'bedroom')!
+    const office = readings.find((r) => r.room.id === 'office')!
 
-    expect(bedroom.temperature).toBe(21.5)
-    expect(bedroom.humidity).toBe(44)
+    expect(office.temperature).toBe(21.5)
+    expect(office.humidity).toBe(44)
   })
 
   it('leaves temperature/humidity undefined for a room with no assigned sensor', async () => {
@@ -61,10 +61,10 @@ describe('getRoomReadings', () => {
     mockFetchSequence([{ id: 9, friendlyName: 'some_other_device', ieeeAddress: '0xbbb' }], {})
 
     const readings = await getRoomReadings()
-    const bedroom = readings.find((r) => r.room.id === 'bedroom')!
+    const office = readings.find((r) => r.room.id === 'office')!
 
-    expect(bedroom.temperature).toBeUndefined()
-    expect(bedroom.humidity).toBeUndefined()
+    expect(office.temperature).toBeUndefined()
+    expect(office.humidity).toBeUndefined()
   })
 
   it('leaves temperature/humidity undefined when the telemetry fetch fails', async () => {
@@ -74,9 +74,9 @@ describe('getRoomReadings', () => {
     )
 
     const readings = await getRoomReadings()
-    const bedroom = readings.find((r) => r.room.id === 'bedroom')!
+    const office = readings.find((r) => r.room.id === 'office')!
 
-    expect(bedroom.temperature).toBeUndefined()
-    expect(bedroom.humidity).toBeUndefined()
+    expect(office.temperature).toBeUndefined()
+    expect(office.humidity).toBeUndefined()
   })
 })
