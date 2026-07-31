@@ -70,22 +70,22 @@ export const rooms: RoomConfig[] = [
     id: "wc",
     label: "WC",
     sensorFriendlyName: null,
-    rects: [{ top: 37.5, left: 30.7, width: 6, height: 37.5 }],
+    rects: [{ top: 37.5, left: 26.7, width: 8, height: 37.5 }],
   },
   {
     id: "bathroom",
     label: "Koupelna",
     sensorFriendlyName: null,
-    rects: [{ top: 37.5, left: 36.7, width: 10, height: 37.5 }],
+    rects: [{ top: 37.5, left: 34.7, width: 8, height: 37.5 }],
   },
   {
     id: "hallway",
     label: "Chodba",
     sensorFriendlyName: null,
-    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along WC's left side.
+    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along Koupelna's right side.
     rects: [
       { top: 75, left: 26.7, width: 20, height: 25 },
-      { top: 37.5, left: 26.7, width: 4, height: 37.5 },
+      { top: 37.5, left: 42.7, width: 4, height: 37.5 },
     ],
   },
   {
@@ -119,8 +119,8 @@ container width. Each room renders one absolutely positioned box per entry in it
 each using that entry's `top`/`left`/`width`/`height` as inline percentages. Because every wall in
 the real apartment is axis-aligned, plain absolutely positioned `div`s reproduce the shapes
 exactly — no SVG needed. A room is rectangular in the common case (`rects` has one entry); the
-hallway is L-shaped (it wraps around WC to reach the kitchen), so its `rects` has two: the main
-strip and a narrow connector.
+hallway is L-shaped (it wraps around Koupelna to reach the kitchen), so its `rects` has two: the
+main strip and a narrow connector.
 
 Nesting (WC and Koupelna sitting inside the Kuchyně/Chodba column) falls out naturally from the
 percentage coordinates; no parent/child DOM nesting is required, all seven rooms are siblings

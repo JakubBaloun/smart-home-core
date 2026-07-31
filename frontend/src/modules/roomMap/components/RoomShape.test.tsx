@@ -17,7 +17,7 @@ const lShapedRoom: RoomConfig = {
   sensorFriendlyName: null,
   rects: [
     { top: 75, left: 26.7, width: 20, height: 25 },
-    { top: 37.5, left: 26.7, width: 4, height: 37.5 },
+    { top: 37.5, left: 42.7, width: 4, height: 37.5 },
   ],
 }
 
@@ -59,6 +59,6 @@ describe('RoomShape', () => {
     const shapes = screen.getAllByTestId('room-shape')
     expect(shapes).toHaveLength(2)
     expect(shapes[0]).toHaveStyle({ top: '75%', left: '26.7%', width: '20%', height: '25%' })
-    expect(shapes[1]).toHaveStyle({ top: '37.5%', left: '26.7%', width: '4%', height: '37.5%' })
+    expect(shapes[1]).toHaveStyle({ top: '37.5%', left: '42.7%', width: '4%', height: '37.5%' })
   })
 })

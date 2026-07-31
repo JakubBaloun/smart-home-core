@@ -33,22 +33,22 @@ export const rooms: RoomConfig[] = [
     id: 'wc',
     label: 'WC',
     sensorFriendlyName: null,
-    rects: [{ top: 37.5, left: 30.7, width: 6, height: 37.5 }],
+    rects: [{ top: 37.5, left: 26.7, width: 8, height: 37.5 }],
   },
   {
     id: 'bathroom',
     label: 'Koupelna',
     sensorFriendlyName: null,
-    rects: [{ top: 37.5, left: 36.7, width: 10, height: 37.5 }],
+    rects: [{ top: 37.5, left: 34.7, width: 8, height: 37.5 }],
   },
   {
     id: 'hallway',
     label: 'Chodba',
     sensorFriendlyName: null,
-    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along WC's left side.
+    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along Koupelna's right side.
     rects: [
       { top: 75, left: 26.7, width: 20, height: 25 },
-      { top: 37.5, left: 26.7, width: 4, height: 37.5 },
+      { top: 37.5, left: 42.7, width: 4, height: 37.5 },
     ],
   },
   {
