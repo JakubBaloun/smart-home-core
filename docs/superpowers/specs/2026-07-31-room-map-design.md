@@ -49,7 +49,8 @@ export interface RoomConfig {
   label: string;
   /** device.friendlyName of the assigned sensor, or null if none yet. */
   sensorFriendlyName: string | null;
-  rect: RoomRect;
+  /** One rect per room, except non-rectangular rooms (e.g. an L-shaped hallway), which use several. */
+  rects: RoomRect[];
 }
 
 export const rooms: RoomConfig[] = [
@@ -57,43 +58,47 @@ export const rooms: RoomConfig[] = [
     id: "bedroom",
     label: "Ložnice",
     sensorFriendlyName: null,
-    rect: { top: 0, left: 0, width: 26.7, height: 100 },
+    rects: [{ top: 0, left: 0, width: 26.7, height: 100 }],
   },
   {
     id: "kitchen",
     label: "Kuchyně",
     sensorFriendlyName: null,
-    rect: { top: 0, left: 26.7, width: 20, height: 37.5 },
+    rects: [{ top: 0, left: 26.7, width: 20, height: 37.5 }],
   },
   {
     id: "wc",
     label: "WC",
     sensorFriendlyName: null,
-    rect: { top: 37.5, left: 26.7, width: 10, height: 37.5 },
+    rects: [{ top: 37.5, left: 30.7, width: 6, height: 37.5 }],
   },
   {
     id: "bathroom",
     label: "Koupelna",
     sensorFriendlyName: null,
-    rect: { top: 37.5, left: 36.7, width: 10, height: 37.5 },
+    rects: [{ top: 37.5, left: 36.7, width: 10, height: 37.5 }],
   },
   {
     id: "hallway",
     label: "Chodba",
     sensorFriendlyName: null,
-    rect: { top: 75, left: 26.7, width: 20, height: 25 },
+    // L-shaped: main strip at the bottom, plus a narrow connector up to the kitchen along WC's left side.
+    rects: [
+      { top: 75, left: 26.7, width: 20, height: 25 },
+      { top: 37.5, left: 26.7, width: 4, height: 37.5 },
+    ],
   },
   {
     id: "living-room",
     label: "Obývák",
     sensorFriendlyName: null,
-    rect: { top: 0, left: 46.7, width: 26.7, height: 100 },
+    rects: [{ top: 0, left: 46.7, width: 26.7, height: 100 }],
   },
   {
     id: "office",
     label: "Pracovna",
     sensorFriendlyName: "Bedroom temp",
-    rect: { top: 0, left: 73.4, width: 26.6, height: 100 },
+    rects: [{ top: 0, left: 73.4, width: 26.6, height: 100 }],
   },
 ];
 ```
@@ -103,16 +108,19 @@ This replaces the previous 6-room list (which included a placeholder `kids-room`
 Pracovna room's real sensor — the device's friendly name in the registry is unrelated to the room
 label it is mapped to here.
 
-Editing the map later means editing this one file: adjusting `rect` values or adding rooms — no
+Editing the map later means editing this one file: adjusting `rects` values or adding rooms — no
 migration, no API change.
 
 ## Layout
 
 The floor plan is one `relative` container with a fixed aspect ratio (`aspect-[9/4]`,
 approximating the real apartment's proportions) and no intrinsic scroll — it scales with its
-container width. Each room is an absolutely positioned box inside it, using its `rect` as inline
-`top`/`left`/`width`/`height` percentages. Because every wall in the real apartment is
-axis-aligned, plain absolutely positioned `div`s reproduce the shapes exactly — no SVG needed.
+container width. Each room renders one absolutely positioned box per entry in its `rects` array,
+each using that entry's `top`/`left`/`width`/`height` as inline percentages. Because every wall in
+the real apartment is axis-aligned, plain absolutely positioned `div`s reproduce the shapes
+exactly — no SVG needed. A room is rectangular in the common case (`rects` has one entry); the
+hallway is L-shaped (it wraps around WC to reach the kitchen), so its `rects` has two: the main
+strip and a narrow connector.
 
 Nesting (WC and Koupelna sitting inside the Kuchyně/Chodba column) falls out naturally from the
 percentage coordinates; no parent/child DOM nesting is required, all seven rooms are siblings
@@ -140,9 +148,10 @@ blueprint/floor plan, not another panel of tiles:
 - `frontend/src/modules/roomMap/api/roomMap.ts` — unchanged (`getRoomReadings()`), still returns
   `RoomReading[]` = `{ room: RoomConfig, temperature?: number, humidity?: number }`.
 - `frontend/src/modules/roomMap/components/RoomShape.tsx` — replaces `RoomTile.tsx`. Renders one
-  room as an absolutely positioned `div` using `reading.room.rect`, `aria-label`/`title` set to
-  `reading.room.label` for accessibility (not visibly rendered), and the reading text only when
-  `temperature`/`humidity` is present, styled per "Visual style" above.
+  absolutely positioned `div` per entry in `reading.room.rects`, each with `aria-label`/`title` set
+  to `reading.room.label` for accessibility (not visibly rendered). The reading text
+  (`temperature`/`humidity`, when present) is rendered only inside the first rect, styled per
+  "Visual style" above, so a multi-rect room doesn't show the number twice.
 - `frontend/src/modules/roomMap/pages/RoomMapPage.tsx` — polls `getRoomReadings()` every 15s via
   `usePolling` (unchanged interval), renders `PageHeader` + a `relative aspect-[9/4]` floor-plan
   container that maps `readings` to `RoomShape`s. Loading/error states unchanged from before.
@@ -164,6 +173,7 @@ shown if `getDevices()` itself fails.
   `friendlyName` doesn't match any device, and a room whose telemetry fetch throws. Test fixtures
   are updated to use the new 7-room list where they reference specific rooms by id/label.
 - `frontend/src/modules/roomMap/components/RoomShape.test.tsx` — replaces `RoomTile.test.tsx`.
-  Asserts inline position styles match `reading.room.rect` (`top`/`left`/`width`/`height` as
-  percentages), asserts no room label text is rendered, and asserts the reading text
-  (temperature/humidity) is present when data exists and absent when it doesn't.
+  Asserts inline position styles match `reading.room.rects` (`top`/`left`/`width`/`height` as
+  percentages), asserts no room label text is rendered, asserts the reading text
+  (temperature/humidity) is present when data exists and absent when it doesn't, and asserts a
+  multi-rect (L-shaped) room renders one box per rect with the reading only in the first.
