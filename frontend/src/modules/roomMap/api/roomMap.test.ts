@@ -36,8 +36,8 @@ describe('getRoomReadings', () => {
 
   it('attaches temperature and humidity for a room whose sensor resolves and reports both', async () => {
     mockFetchSequence(
-      [{ id: 1, friendlyName: 'smoke_thermo', ieeeAddress: '0xaaa' }],
-      { '0xaaa': { deviceName: 'smoke_thermo', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' } },
+      [{ id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' }],
+      { '0xaaa': { deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' } },
     )
 
     const readings = await getRoomReadings()
@@ -69,7 +69,7 @@ describe('getRoomReadings', () => {
 
   it('leaves temperature/humidity undefined when the telemetry fetch fails', async () => {
     mockFetchSequence(
-      [{ id: 1, friendlyName: 'smoke_thermo', ieeeAddress: '0xaaa' }],
+      [{ id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' }],
       { '0xaaa': 'ERROR' },
     )
 
