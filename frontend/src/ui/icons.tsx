@@ -115,6 +115,15 @@ export function IconLayoutGrid(props: IconProps) {
   )
 }
 
+export function IconMap(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 6.5 9 4.5l6 2 5-2v13l-5 2-6-2-5 2z" />
+      <path d="M9 4.5v13M15 6.5v13" />
+    </Icon>
+  )
+}
+
 export function IconThermometer(props: IconProps) {
   return (
     <Icon {...props}>
