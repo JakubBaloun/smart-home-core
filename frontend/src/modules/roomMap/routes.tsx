@@ -6,6 +6,7 @@ export const roomMapModule: ModuleManifest = {
   nav: {
     to: '/room-map',
     label: 'Room Map',
+    railLabel: 'Map',
     icon: IconMap,
     isActive: (pathname) => pathname.startsWith('/room-map'),
   },

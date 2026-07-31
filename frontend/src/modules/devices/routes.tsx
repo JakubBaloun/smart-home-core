@@ -6,7 +6,8 @@ import { DeviceDetailPage } from './pages/DeviceDetailPage'
 export const devicesModule: ModuleManifest = {
   nav: {
     to: '/',
-    label: 'Devices',
+    label: 'Overview',
+    railLabel: 'Home',
     icon: IconHome,
     isActive: (pathname) => pathname === '/' || pathname.startsWith('/device'),
   },

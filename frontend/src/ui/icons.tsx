@@ -127,9 +127,9 @@ export function IconMap(props: IconProps) {
 export function IconThermometer(props: IconProps) {
   return (
     <Icon {...props}>
-      <path d="M10.5 14.8V5.2a1.7 1.7 0 1 0-3.4 0v9.6a3.6 3.6 0 1 0 3.4 0z" />
-      <path d="M8.8 6.5v6.8" />
-      <circle cx="8.8" cy="16.2" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M13.7 14.8V5.2a1.7 1.7 0 1 0-3.4 0v9.6a3.6 3.6 0 1 0 3.4 0z" />
+      <path d="M12 6.5v6.8" />
+      <circle cx="12" cy="16.2" r="1.1" fill="currentColor" stroke="none" />
     </Icon>
   )
 }

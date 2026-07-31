@@ -18,13 +18,13 @@ export function TemperatureChart({ points }: { points: TelemetryPoint[] }) {
   const data = points.map((p) => ({ time: p.time, value: p.value }))
 
   return (
-    <div className="h-40 w-full font-mono">
+    <div className="h-48 w-full font-mono">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={palette.series} stopOpacity={0.45} />
-              <stop offset="95%" stopColor={palette.series} stopOpacity={0} />
+              <stop offset="5%" stopColor={palette.warm} stopOpacity={0.45} />
+              <stop offset="95%" stopColor={palette.warm} stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
@@ -41,9 +41,9 @@ export function TemperatureChart({ points }: { points: TelemetryPoint[] }) {
             fontSize={11}
             tickLine={false}
             axisLine={false}
-            width={34}
+            width={44}
             tickFormatter={(v: number) => `${v}°`}
-            domain={['auto', 'auto']}
+            domain={[(min: number) => Math.floor(min - 1), (max: number) => Math.ceil(max + 1)]}
           />
           <Tooltip
             labelFormatter={(label) => formatTime(label as string)}
@@ -58,7 +58,7 @@ export function TemperatureChart({ points }: { points: TelemetryPoint[] }) {
           <Area
             type="monotone"
             dataKey="value"
-            stroke={palette.series}
+            stroke={palette.warm}
             strokeWidth={2.5}
             fill={`url(#${gradientId})`}
             dot={false}

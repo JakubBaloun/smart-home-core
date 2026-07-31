@@ -14,49 +14,51 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --surface-sunken: #100f0e;
-  --surface: #161513;
-  --surface-raised: #201e1b;
-  --overlay: #2a2723;
+  --surface-sunken: #0c0b0a;
+  --surface: #141210;
+  --surface-raised: #201d18;
+  --overlay: #2c2721;
 
-  --line: #35322d;
-  --line-strong: #4a463f;
+  --line: #38332b;
+  --line-strong: #59503f;
 
-  --ink: #ede8e0;
-  --ink-muted: #a8a199;
-  --ink-faint: #6e6961;
+  --ink: #f7f2ea;
+  --ink-muted: #aca396;
+  --ink-faint: #6f6960;
 
-  --accent: #e0a458;
-  --accent-strong: #edb56e;
-  --accent-ink: #221604;
+  --accent: #2563eb;
+  --accent-strong: #3b82f6;
+  --accent-ink: #f8fafc;
 
   --ok: #84a98c;
-  --cool: #82aec4;
-  --danger: #d0705f;
+  --cool: #4fb8c9;
+  --warm: #e0a458;
+  --danger: #dd5b44;
 }
 
 [data-theme='light'] {
   color-scheme: light;
 
-  --surface-sunken: #dcd9d2;
-  --surface: #e9e7e2;
-  --surface-raised: #f4f3ef;
-  --overlay: #fbfaf7;
+  --surface-sunken: #dedede;
+  --surface: #eeeeee;
+  --surface-raised: #f8f8f8;
+  --overlay: #ffffff;
 
-  --line: #cfcbc2;
-  --line-strong: #aca698;
+  --line: #d4d4d4;
+  --line-strong: #9d9d9d;
 
-  --ink: #211f1c;
-  --ink-muted: #5d5a53;
-  --ink-faint: #8b877e;
+  --ink: #171717;
+  --ink-muted: #545454;
+  --ink-faint: #868686;
 
-  --accent: #b97f35;
-  --accent-strong: #a06a24;
-  --accent-ink: #fdf6ec;
+  --accent: #1d4ed8;
+  --accent-strong: #1e40af;
+  --accent-ink: #f8fafc;
 
   --ok: #55795e;
-  --cool: #40708b;
-  --danger: #a93d33;
+  --cool: #1f7a8c;
+  --warm: #b97f35;
+  --danger: #b8382a;
 }
 
 @theme {
@@ -88,6 +90,7 @@
 
   --color-ok: var(--ok);
   --color-cool: var(--cool);
+  --color-warm: var(--warm);
   --color-danger: var(--danger);
 }
 
@@ -108,6 +111,23 @@ body,
 body {
   transition: background-color 200ms ease, color 200ms ease;
 }
+
+/*
+ * Motion system — a small named set of animations, applied consistently
+ * instead of ad-hoc transitions. See frontend/DESIGN.md.
+ */
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fade-slide-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-breathe { animation: breathe 2.5s ease-in-out infinite; }
+.animate-fade-slide-in { animation: fade-slide-in 300ms ease-out both; }
 
 * {
   scrollbar-width: none;

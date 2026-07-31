@@ -17,10 +17,10 @@ const baseDevice: Device = {
   updatedAt: new Date().toISOString(),
 }
 
-function renderCard(device: Device) {
+function renderCard(device: Device, liveValue?: string) {
   return render(
     <MemoryRouter>
-      <DeviceCard device={device} />
+      <DeviceCard device={device} liveValue={liveValue} />
     </MemoryRouter>,
   )
 }
@@ -43,5 +43,17 @@ describe('DeviceCard', () => {
     renderCard({ ...baseDevice, available: false })
 
     expect(screen.getByTitle('Offline')).toBeInTheDocument()
+  })
+
+  it('shows the live sensor value instead of last-seen when present', () => {
+    renderCard({ ...baseDevice, type: 'SENSOR' }, '21.5°C · 44%')
+
+    expect(screen.getByText('21.5°C · 44%')).toBeInTheDocument()
+  })
+
+  it('falls back to last-seen when there is no live value', () => {
+    renderCard(baseDevice)
+
+    expect(screen.getByText('Just now')).toBeInTheDocument()
   })
 })

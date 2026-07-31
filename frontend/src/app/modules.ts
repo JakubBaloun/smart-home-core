@@ -8,6 +8,8 @@ import { temperatureModule } from '@/modules/temperature/routes'
 export interface ModuleNav {
   to: string
   label: string
+  /** Short label rendered under the rail icon — the rail is only 80px wide, `label` can be too long. */
+  railLabel: string
   icon: ComponentType<{ className?: string }>
   /** Which pathnames light this module up in the rail. */
   isActive: (pathname: string) => boolean

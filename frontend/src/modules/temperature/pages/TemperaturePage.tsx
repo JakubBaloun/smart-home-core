@@ -19,8 +19,8 @@ export function TemperaturePage() {
       )}
       {readings && readings.length > 0 && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {readings.map(({ device, latest }) => (
-            <TemperatureCard key={device.id} device={device} latest={latest} />
+          {readings.map(({ device, latest }, index) => (
+            <TemperatureCard key={device.id} device={device} latest={latest} delayMs={index * 40} />
           ))}
         </div>
       )}

@@ -1,7 +1,8 @@
 # Nexus — design system
 
 Frontend pro domácí hub běžící na nástěnných tabletech. Vizuální směr: „tichý domácí
-přístroj" — teplý grafit / vápenec, jantarový akcent (Hearth), kruhový motiv (Nexus ring).
+přístroj" — teplý grafit (dark) / neutrální šedá (light) se sytějším kontrastem, elektricky
+modrý akcent (Volt), kruhový motiv (Nexus ring).
 
 ## Tokeny
 
@@ -18,9 +19,10 @@ sémantické utility:
 | `overlay` | `--overlay` | tooltips, vyskakovací vrstvy |
 | `line` / `line-strong` | `--line`, `--line-strong` | ohraničení |
 | `ink` / `ink-muted` / `ink-faint` | `--ink…` | text: hlavní / vedlejší / potlačený |
-| `accent` / `accent-strong` / `accent-ink` | `--accent…` | Hearth jantar; `accent-ink` = text na akcentu |
+| `accent` / `accent-strong` / `accent-ink` | `--accent…` | Volt modrá; `accent-ink` = text na akcentu |
 | `ok` | `--ok` | Sage — online, hotovo |
-| `cool` | `--cool` | Glacier — grafy, informační |
+| `cool` | `--cool` | Glacier — obecné grafy, informační |
+| `warm` | `--warm` | bývalá Hearth jantar — grafy teploty (aby vysoká teplota nepůsobila "studeně") |
 | `danger` | `--danger` | destruktivní akce, chyby |
 
 Písma: `font-display` (Familjen Grotesk — nadpisy), `font-mono` (Spline Sans Mono —
@@ -39,9 +41,13 @@ Písma: `font-display` (Familjen Grotesk — nadpisy), `font-mono` (Spline Sans 
 
 ## Sdílené UI (`src/ui/`)
 
-`Ring` (Nexus ring — logo, spinner, progress, dostupnost), `Button`/`ButtonLink`,
+`Ring` (Nexus ring — logo, spinner, progress), `LiveDot` (plná tečka pro online/offline stav —
+`Ring` se pro stav nepoužívá, aby nepůsobil jako spinner), `Button`/`ButtonLink`,
 `Chip`/`ChipButton`, `PageHeader` (titulek + hodiny), `Loading`, `icons.tsx`,
 `field.ts` (třídy pro inputy).
+
+Motion systém (`src/index.css`): `animate-breathe` (pomalý pulz, `LiveDot` online) a
+`animate-fade-slide-in` (vstup karet, se stagger delay přes inline `animationDelay`).
 
 ## Moduly a routing
 

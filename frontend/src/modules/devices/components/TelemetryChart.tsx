@@ -15,13 +15,14 @@ export function TelemetryChart({ field, points }: { field: string; points: Telem
   }
 
   const data = points.map((p) => ({ time: p.time, value: p.value }))
+  const seriesColor = field.toLowerCase().includes('temp') ? palette.warm : palette.series
 
   return (
     <div className="h-64 w-full font-mono">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data}>
+        <LineChart data={data} margin={{ left: 8 }}>
           <XAxis dataKey="time" tickFormatter={formatTime} stroke={palette.axis} fontSize={12} />
-          <YAxis stroke={palette.axis} fontSize={12} />
+          <YAxis stroke={palette.axis} fontSize={12} width={48} />
           <Tooltip
             labelFormatter={(label) => formatTime(label as string)}
             contentStyle={{
@@ -31,7 +32,7 @@ export function TelemetryChart({ field, points }: { field: string; points: Telem
               color: palette.tooltipInk,
             }}
           />
-          <Line type="monotone" dataKey="value" stroke={palette.series} strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="value" stroke={seriesColor} strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>

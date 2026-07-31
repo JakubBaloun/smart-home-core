@@ -8,6 +8,7 @@ export const recipesModule: ModuleManifest = {
   nav: {
     to: '/recipes',
     label: 'Recipes',
+    railLabel: 'Cook',
     icon: IconPot,
     isActive: (pathname) => pathname.startsWith('/recipes'),
   },

@@ -46,7 +46,7 @@ export function PageHeader({
           </h1>
           {subtitle && <p className="mt-1 text-sm text-ink-muted">{subtitle}</p>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           {actions}
           <Clock />
         </div>

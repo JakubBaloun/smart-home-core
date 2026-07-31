@@ -16,8 +16,8 @@ export interface RingProps {
 
 /**
  * The Nexus ring — the app's signature mark. Used as logo, loading spinner,
- * active-navigation indicator, availability indicator, and timer progress.
- * Colored via `currentColor`.
+ * and timer/checklist progress. Colored via `currentColor`. Not used for
+ * online/offline status — see `LiveDot` for that.
  */
 export function Ring({ size = 24, strokeWidth = 4, progress, spinning = false, className }: RingProps) {
   const isProgress = progress !== undefined

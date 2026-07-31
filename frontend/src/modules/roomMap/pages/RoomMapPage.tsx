@@ -15,7 +15,7 @@ export function RoomMapPage() {
       {loading && !readings && <Loading label="Reading rooms…" />}
       {error && <p className="text-danger">Failed to load room data: {error.message}</p>}
       {readings && (
-        <div className="relative aspect-[9/4] w-full bg-surface-sunken">
+        <div className="relative aspect-square w-full bg-surface-sunken sm:aspect-[9/4]">
           {readings.map((reading) => (
             <RoomShape key={reading.room.id} reading={reading} />
           ))}

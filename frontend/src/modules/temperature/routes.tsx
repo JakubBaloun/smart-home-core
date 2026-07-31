@@ -6,6 +6,7 @@ export const temperatureModule: ModuleManifest = {
   nav: {
     to: '/temperature',
     label: 'Temperature',
+    railLabel: 'Temp',
     icon: IconThermometer,
     isActive: (pathname) => pathname.startsWith('/temperature'),
   },
