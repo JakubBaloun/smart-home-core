@@ -16,8 +16,10 @@ from app.device.router import device_router
 from app.mqtt import client as mqtt_client
 from app.mqtt.health import health_router
 from app.recipe.router import recipe_router, tag_router
+from app.shopping.router import shopping_router
 from app.telemetry.client import close_client
 from app.telemetry.router import telemetry_router
+from app.todo.router import todo_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,6 +37,8 @@ EXPECTED_TABLES = {
     "recipe_step",
     "tag",
     "recipe_tag",
+    "shopping_item",
+    "todo_item",
 }
 
 
@@ -74,6 +78,8 @@ app.include_router(device_router)
 app.include_router(telemetry_router)
 app.include_router(recipe_router)
 app.include_router(tag_router)
+app.include_router(shopping_router)
+app.include_router(todo_router)
 app.include_router(health_router)
 
 

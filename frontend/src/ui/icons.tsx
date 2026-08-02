@@ -184,3 +184,24 @@ export function IconServing(props: IconProps) {
     </Icon>
   )
 }
+
+export function IconCart(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M3.5 4.5h2l2.3 11.2a1.8 1.8 0 0 0 1.8 1.4h7.6a1.8 1.8 0 0 0 1.8-1.4L20.5 8H6.5" />
+      <circle cx="10" cy="20" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="17" cy="20" r="1.3" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
+export function IconChecklist(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M9.5 6h10M9.5 12h10M9.5 18h10" />
+      <path d="m4 6 1.3 1.3L7.5 5" />
+      <path d="m4 12 1.3 1.3 2.2-2.3" />
+      <path d="m4 18 1.3 1.3 2.2-2.3" />
+    </Icon>
+  )
+}
