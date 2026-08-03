@@ -36,8 +36,8 @@ describe('getRoomReadings', () => {
 
   it('attaches temperature and humidity for a room whose sensor resolves and reports both', async () => {
     mockFetchSequence(
-      [{ id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' }],
-      { '0xaaa': { deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' } },
+      [{ id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xe456acfffe5dc028' }],
+      { '0xe456acfffe5dc028': { deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' } },
     )
 
     const readings = await getRoomReadings()
@@ -50,12 +50,12 @@ describe('getRoomReadings', () => {
   it('merges readings from a second assigned sensor in the same room', async () => {
     mockFetchSequence(
       [
-        { id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' },
-        { id: 2, friendlyName: 'Dveře', ieeeAddress: '0xbbb' },
+        { id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xe456acfffe5dc028' },
+        { id: 2, friendlyName: 'Dveře', ieeeAddress: '0x54dce9fffefa56fb' },
       ],
       {
-        '0xaaa': { deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' },
-        '0xbbb': { deviceName: 'Dveře', values: { contact: 1, battery: 100, linkquality: 60 }, lastUpdated: '2026-07-31T10:00:00Z' },
+        '0xe456acfffe5dc028': { deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' },
+        '0x54dce9fffefa56fb': { deviceName: 'Dveře', values: { contact: 1, battery: 100, linkquality: 60 }, lastUpdated: '2026-07-31T10:00:00Z' },
       },
     )
 
@@ -69,8 +69,8 @@ describe('getRoomReadings', () => {
 
   it('maps a contact value of 0 to open (false)', async () => {
     mockFetchSequence(
-      [{ id: 2, friendlyName: 'Dveře', ieeeAddress: '0xbbb' }],
-      { '0xbbb': { deviceName: 'Dveře', values: { contact: 0 }, lastUpdated: '2026-07-31T10:00:00Z' } },
+      [{ id: 2, friendlyName: 'Dveře', ieeeAddress: '0x54dce9fffefa56fb' }],
+      { '0x54dce9fffefa56fb': { deviceName: 'Dveře', values: { contact: 0 }, lastUpdated: '2026-07-31T10:00:00Z' } },
     )
 
     const readings = await getRoomReadings()
@@ -90,8 +90,8 @@ describe('getRoomReadings', () => {
     expect(livingRoom.contact).toBeUndefined()
   })
 
-  it('leaves fields undefined when a configured friendlyName matches no device', async () => {
-    mockFetchSequence([{ id: 9, friendlyName: 'some_other_device', ieeeAddress: '0xbbb' }], {})
+  it('leaves fields undefined when a configured ieeeAddress matches no device', async () => {
+    mockFetchSequence([{ id: 9, friendlyName: 'some_other_device', ieeeAddress: '0xccc' }], {})
 
     const readings = await getRoomReadings()
     const office = readings.find((r) => r.room.id === 'office')!
@@ -103,12 +103,12 @@ describe('getRoomReadings', () => {
   it('keeps data from a sensor that resolved when a sibling sensor in the same room fails', async () => {
     mockFetchSequence(
       [
-        { id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' },
-        { id: 2, friendlyName: 'Dveře', ieeeAddress: '0xbbb' },
+        { id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xe456acfffe5dc028' },
+        { id: 2, friendlyName: 'Dveře', ieeeAddress: '0x54dce9fffefa56fb' },
       ],
       {
-        '0xaaa': { deviceName: 'Bedroom temp', values: { temperature: 21.5 }, lastUpdated: '2026-07-31T10:00:00Z' },
-        '0xbbb': 'ERROR',
+        '0xe456acfffe5dc028': { deviceName: 'Bedroom temp', values: { temperature: 21.5 }, lastUpdated: '2026-07-31T10:00:00Z' },
+        '0x54dce9fffefa56fb': 'ERROR',
       },
     )
 

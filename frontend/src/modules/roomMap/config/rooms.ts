@@ -14,8 +14,9 @@ export interface RoomConfig {
   id: string
   /** Not rendered on the map; used for aria-label/title only. */
   label: string
-  /** device.friendlyName values of assigned sensors (temperature, contact, ...), or [] if none yet. */
-  sensorFriendlyNames: string[]
+  /** device.ieeeAddress values of assigned sensors (temperature, contact, ...), or [] if none yet.
+   *  Stable across friendlyName renames — unlike friendlyName, this never changes for a device. */
+  sensorIeeeAddresses: string[]
   /** One rect per room, except non-rectangular rooms (e.g. an L-shaped hallway), which use several. */
   rects: RoomRect[]
 }
@@ -24,13 +25,13 @@ export const rooms: RoomConfig[] = [
   {
     id: 'bedroom',
     label: 'Ložnice',
-    sensorFriendlyNames: [],
+    sensorIeeeAddresses: [],
     rects: [{ top: 0, left: 0, width: 26.7, height: 100 }],
   },
   {
     id: 'kitchen',
     label: 'Kuchyně',
-    sensorFriendlyNames: [],
+    sensorIeeeAddresses: [],
     // Split so the sliver above the hallway connector can go without a bottom/left border — same
     // room on both sides of that internal seam, and the doorway down into the hallway is open.
     rects: [
@@ -41,19 +42,19 @@ export const rooms: RoomConfig[] = [
   {
     id: 'wc',
     label: 'WC',
-    sensorFriendlyNames: [],
+    sensorIeeeAddresses: [],
     rects: [{ top: 37.5, left: 26.7, width: 8, height: 37.5 }],
   },
   {
     id: 'bathroom',
     label: 'Koupelna',
-    sensorFriendlyNames: [],
+    sensorIeeeAddresses: [],
     rects: [{ top: 37.5, left: 34.7, width: 8, height: 37.5 }],
   },
   {
     id: 'hallway',
     label: 'Chodba',
-    sensorFriendlyNames: [],
+    sensorIeeeAddresses: [],
     // L-shaped: main strip split at the connector's width so that seam and the doorway up into the
     // kitchen can go without a border — no wall/door at either, it's one open room.
     rects: [
@@ -65,13 +66,13 @@ export const rooms: RoomConfig[] = [
   {
     id: 'living-room',
     label: 'Obývák',
-    sensorFriendlyNames: [],
+    sensorIeeeAddresses: [],
     rects: [{ top: 0, left: 46.7, width: 26.7, height: 100 }],
   },
   {
     id: 'office',
     label: 'Pracovna',
-    sensorFriendlyNames: ['Bedroom temp', 'Dveře'],
+    sensorIeeeAddresses: ['0xe456acfffe5dc028', '0x54dce9fffefa56fb'],
     rects: [{ top: 0, left: 73.4, width: 26.6, height: 100 }],
   },
 ]

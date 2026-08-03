@@ -7,14 +7,14 @@ import type { RoomConfig } from '../config/rooms'
 const room: RoomConfig = {
   id: 'office',
   label: 'Pracovna',
-  sensorFriendlyNames: ['Bedroom temp'],
+  sensorIeeeAddresses: ['0xe456acfffe5dc028'],
   rects: [{ top: 0, left: 66.6, width: 33.4, height: 100 }],
 }
 
 const lShapedRoom: RoomConfig = {
   id: 'hallway',
   label: 'Chodba',
-  sensorFriendlyNames: [],
+  sensorIeeeAddresses: [],
   rects: [
     { top: 75, left: 26.7, width: 20, height: 25 },
     { top: 37.5, left: 42.7, width: 4, height: 37.5 },
@@ -42,7 +42,7 @@ describe('RoomShape', () => {
   })
 
   it('renders no reading text and data-has-data="false" when there is no data', () => {
-    const reading: RoomReading = { room: { ...room, sensorFriendlyNames: [] } }
+    const reading: RoomReading = { room: { ...room, sensorIeeeAddresses: [] } }
 
     render(<RoomShape reading={reading} />)
 
