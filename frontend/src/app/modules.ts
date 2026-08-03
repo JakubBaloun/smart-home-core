@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import type { RouteObject } from 'react-router-dom'
 import { calendarModule } from '@/modules/calendar/routes'
 import { devicesModule } from '@/modules/devices/routes'
+import { homeModule } from '@/modules/home/routes'
 import { recipesModule } from '@/modules/recipes/routes'
 import { roomMapModule } from '@/modules/roomMap/routes'
 import { shoppingModule } from '@/modules/shopping/routes'
@@ -29,6 +30,7 @@ export interface ModuleManifest {
  * Kiosk-style routes (no shell) are composed separately in App.tsx.
  */
 export const shellModules: ModuleManifest[] = [
+  homeModule,
   devicesModule,
   temperatureModule,
   roomMapModule,
