@@ -6,6 +6,8 @@ export interface RoomReading {
   room: RoomConfig
   temperature?: number
   humidity?: number
+  /** true = closed, false = open. */
+  contact?: boolean
 }
 
 export async function getRoomReadings(): Promise<RoomReading[]> {
@@ -13,21 +15,23 @@ export async function getRoomReadings(): Promise<RoomReading[]> {
 
   return Promise.all(
     rooms.map(async (room): Promise<RoomReading> => {
-      if (!room.sensorFriendlyName) return { room }
+      const reading: RoomReading = { room }
 
-      const device = devices.find((d) => d.friendlyName === room.sensorFriendlyName)
-      if (!device) return { room }
+      for (const sensorFriendlyName of room.sensorFriendlyNames) {
+        const device = devices.find((d) => d.friendlyName === sensorFriendlyName)
+        if (!device) continue
 
-      try {
-        const latest = await getLatestTelemetry(device.ieeeAddress)
-        return {
-          room,
-          temperature: typeof latest.values.temperature === 'number' ? latest.values.temperature : undefined,
-          humidity: typeof latest.values.humidity === 'number' ? latest.values.humidity : undefined,
+        try {
+          const latest = await getLatestTelemetry(device.ieeeAddress)
+          if (typeof latest.values.temperature === 'number') reading.temperature = latest.values.temperature
+          if (typeof latest.values.humidity === 'number') reading.humidity = latest.values.humidity
+          if (typeof latest.values.contact === 'number') reading.contact = latest.values.contact === 1
+        } catch {
+          // This sensor failed to resolve — leave whatever the room already has from a sibling sensor.
         }
-      } catch {
-        return { room }
       }
+
+      return reading
     }),
   )
 }

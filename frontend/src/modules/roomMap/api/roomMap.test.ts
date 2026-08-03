@@ -47,7 +47,39 @@ describe('getRoomReadings', () => {
     expect(office.humidity).toBe(44)
   })
 
-  it('leaves temperature/humidity undefined for a room with no assigned sensor', async () => {
+  it('merges readings from a second assigned sensor in the same room', async () => {
+    mockFetchSequence(
+      [
+        { id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' },
+        { id: 2, friendlyName: 'Dveře', ieeeAddress: '0xbbb' },
+      ],
+      {
+        '0xaaa': { deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 44 }, lastUpdated: '2026-07-31T10:00:00Z' },
+        '0xbbb': { deviceName: 'Dveře', values: { contact: 1, battery: 100, linkquality: 60 }, lastUpdated: '2026-07-31T10:00:00Z' },
+      },
+    )
+
+    const readings = await getRoomReadings()
+    const office = readings.find((r) => r.room.id === 'office')!
+
+    expect(office.temperature).toBe(21.5)
+    expect(office.humidity).toBe(44)
+    expect(office.contact).toBe(true)
+  })
+
+  it('maps a contact value of 0 to open (false)', async () => {
+    mockFetchSequence(
+      [{ id: 2, friendlyName: 'Dveře', ieeeAddress: '0xbbb' }],
+      { '0xbbb': { deviceName: 'Dveře', values: { contact: 0 }, lastUpdated: '2026-07-31T10:00:00Z' } },
+    )
+
+    const readings = await getRoomReadings()
+    const office = readings.find((r) => r.room.id === 'office')!
+
+    expect(office.contact).toBe(false)
+  })
+
+  it('leaves temperature/humidity/contact undefined for a room with no assigned sensors', async () => {
     mockFetchSequence([], {})
 
     const readings = await getRoomReadings()
@@ -55,28 +87,35 @@ describe('getRoomReadings', () => {
 
     expect(livingRoom.temperature).toBeUndefined()
     expect(livingRoom.humidity).toBeUndefined()
+    expect(livingRoom.contact).toBeUndefined()
   })
 
-  it('leaves temperature/humidity undefined when the configured friendlyName matches no device', async () => {
+  it('leaves fields undefined when a configured friendlyName matches no device', async () => {
     mockFetchSequence([{ id: 9, friendlyName: 'some_other_device', ieeeAddress: '0xbbb' }], {})
 
     const readings = await getRoomReadings()
     const office = readings.find((r) => r.room.id === 'office')!
 
     expect(office.temperature).toBeUndefined()
-    expect(office.humidity).toBeUndefined()
+    expect(office.contact).toBeUndefined()
   })
 
-  it('leaves temperature/humidity undefined when the telemetry fetch fails', async () => {
+  it('keeps data from a sensor that resolved when a sibling sensor in the same room fails', async () => {
     mockFetchSequence(
-      [{ id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' }],
-      { '0xaaa': 'ERROR' },
+      [
+        { id: 1, friendlyName: 'Bedroom temp', ieeeAddress: '0xaaa' },
+        { id: 2, friendlyName: 'Dveře', ieeeAddress: '0xbbb' },
+      ],
+      {
+        '0xaaa': { deviceName: 'Bedroom temp', values: { temperature: 21.5 }, lastUpdated: '2026-07-31T10:00:00Z' },
+        '0xbbb': 'ERROR',
+      },
     )
 
     const readings = await getRoomReadings()
     const office = readings.find((r) => r.room.id === 'office')!
 
-    expect(office.temperature).toBeUndefined()
-    expect(office.humidity).toBeUndefined()
+    expect(office.temperature).toBe(21.5)
+    expect(office.contact).toBeUndefined()
   })
 })
