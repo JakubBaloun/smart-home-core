@@ -95,7 +95,7 @@ export function DeviceDetailPage() {
     setDeleting(true)
     try {
       await deleteDevice(device.id)
-      navigate('/')
+      navigate('/devices')
     } finally {
       setDeleting(false)
     }
@@ -118,7 +118,7 @@ export function DeviceDetailPage() {
             {device.vendor} {device.model} · {device.ieeeAddress}
           </span>
         }
-        back={{ to: '/', label: 'Devices' }}
+        back={{ to: '/devices', label: 'Devices' }}
         actions={
           <>
             <span
