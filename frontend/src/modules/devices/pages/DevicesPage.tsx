@@ -8,7 +8,7 @@ import { formatLastSeen } from '../format'
 
 const REFRESH_INTERVAL_MS = 15_000
 
-export function DashboardPage() {
+export function DevicesPage() {
   const { data: readings, error, loading } = usePolling(getDeviceReadings, REFRESH_INTERVAL_MS)
 
   const devices = readings?.map((r) => r.device)
