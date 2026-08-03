@@ -6,8 +6,10 @@ import { Loading } from '@/ui/Loading'
 import { PageHeader } from '@/ui/PageHeader'
 import { fieldClasses, labelClasses } from '@/ui/field'
 import { deleteDevice, getDevice, sendCommand, updateDevice } from '../api/devices'
-import { getLatestTelemetry, getTelemetryHistory } from '../api/telemetry'
+import { getLatestTelemetry, getRangeBounds, getTelemetryHistory } from '../api/telemetry'
+import { ContactTimeline } from '../components/ContactTimeline'
 import { TelemetryChart } from '../components/TelemetryChart'
+import { sortFieldsForDisplay } from '../lib/fieldOrder'
 import type { DeviceType, UpdateDeviceRequest } from '../types/device'
 import type { TimeRange } from '../types/telemetry'
 
@@ -41,7 +43,9 @@ export function DeviceDetailPage() {
     [device?.ieeeAddress],
   )
 
-  const fields = latest ? Object.keys(latest.values) : []
+  const allFields = latest ? Object.keys(latest.values) : []
+  const hasContact = allFields.includes('contact')
+  const chartFields = sortFieldsForDisplay(allFields.filter((f) => f !== 'contact'))
 
   const handleSetState = async (state: 'ON' | 'OFF') => {
     if (!device) return
@@ -221,7 +225,7 @@ export function DeviceDetailPage() {
         </div>
       )}
 
-      {fields.length > 0 && (
+      {(hasContact || chartFields.length > 0) && (
         <div className="mt-8">
           <div className="mb-4 inline-flex rounded-xl border border-line bg-surface-raised p-1">
             {TIME_RANGES.map((r) => (
@@ -238,11 +242,23 @@ export function DeviceDetailPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {fields.map((field) => (
-              <TelemetryFieldChart key={field} deviceKey={device.ieeeAddress} field={field} range={range} />
-            ))}
-          </div>
+          {hasContact && (
+            <div className="mb-6">
+              <ContactTimelineCard
+                deviceKey={device.ieeeAddress}
+                range={range}
+                currentValue={latest?.values.contact}
+              />
+            </div>
+          )}
+
+          {chartFields.length > 0 && (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {chartFields.map((field) => (
+                <TelemetryFieldChart key={field} deviceKey={device.ieeeAddress} field={field} range={range} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -268,6 +284,34 @@ function TelemetryFieldChart({
     <div className="rounded-2xl border border-line bg-surface-raised p-4">
       <h3 className="mb-3 font-mono text-xs tracking-wider text-ink-muted uppercase">{field}</h3>
       <TelemetryChart field={field} points={data?.points ?? []} />
+    </div>
+  )
+}
+
+function ContactTimelineCard({
+  deviceKey,
+  range,
+  currentValue,
+}: {
+  deviceKey: string
+  range: TimeRange
+  currentValue?: number
+}) {
+  const { data } = usePolling(() => getTelemetryHistory(deviceKey, 'contact', range), REFRESH_INTERVAL_MS, [
+    deviceKey,
+    range,
+  ])
+  const { from, to } = getRangeBounds(range)
+
+  return (
+    <div className="rounded-2xl border border-line bg-surface-raised p-4">
+      <h3 className="mb-3 font-mono text-xs tracking-wider text-ink-muted uppercase">contact</h3>
+      <ContactTimeline
+        points={data?.points ?? []}
+        fromMs={from.getTime()}
+        toMs={to.getTime()}
+        currentValue={currentValue}
+      />
     </div>
   )
 }
