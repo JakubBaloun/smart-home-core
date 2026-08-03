@@ -8,6 +8,10 @@ const RANGE_TO_DURATION_MS: Record<TimeRange, number> = {
   '7d': 7 * 24 * 60 * 60 * 1000,
 }
 
+export function getRangeBounds(range: TimeRange, now: Date = new Date()): { from: Date; to: Date } {
+  return { from: new Date(now.getTime() - RANGE_TO_DURATION_MS[range]), to: now }
+}
+
 /**
  * `deviceKey` should be the device's `ieeeAddress`. It is immutable, so charts
  * survive a rename; the backend maps it to the device's whole history,
@@ -19,8 +23,7 @@ export function getTelemetryHistory(
   field: string,
   range: TimeRange,
 ): Promise<TelemetryResponse> {
-  const to = new Date()
-  const from = new Date(to.getTime() - RANGE_TO_DURATION_MS[range])
+  const { from, to } = getRangeBounds(range)
 
   const params = new URLSearchParams({
     field,
