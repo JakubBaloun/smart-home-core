@@ -9,6 +9,7 @@ from sqlalchemy import inspect
 
 from app.automation import bridge, scheduler
 from app.automation.registry import rule_registry
+from app.calendar.router import calendar_router
 from app.common.errors import register_exception_handlers
 from app.config import get_settings
 from app.db import get_engine
@@ -39,6 +40,7 @@ EXPECTED_TABLES = {
     "recipe_tag",
     "shopping_item",
     "todo_item",
+    "calendar_event",
 }
 
 
@@ -80,6 +82,7 @@ app.include_router(recipe_router)
 app.include_router(tag_router)
 app.include_router(shopping_router)
 app.include_router(todo_router)
+app.include_router(calendar_router)
 app.include_router(health_router)
 
 

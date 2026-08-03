@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react'
 import type { RouteObject } from 'react-router-dom'
+import { calendarModule } from '@/modules/calendar/routes'
 import { devicesModule } from '@/modules/devices/routes'
 import { recipesModule } from '@/modules/recipes/routes'
 import { roomMapModule } from '@/modules/roomMap/routes'
@@ -34,4 +35,5 @@ export const shellModules: ModuleManifest[] = [
   recipesModule,
   shoppingModule,
   todoModule,
+  calendarModule,
 ]

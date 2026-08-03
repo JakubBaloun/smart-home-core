@@ -56,7 +56,8 @@ def clean_tables():
         session.execute(
             text(
                 "TRUNCATE recipe_tag, recipe_ingredient, recipe_step, recipe, tag, "
-                "device_alias, device, shopping_item, todo_item RESTART IDENTITY CASCADE"
+                "device_alias, device, shopping_item, todo_item, calendar_event "
+                "RESTART IDENTITY CASCADE"
             )
         )
 
