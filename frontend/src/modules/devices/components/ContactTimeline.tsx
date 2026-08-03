@@ -53,7 +53,7 @@ export function ContactTimeline({
         </div>
       )}
 
-      <div className="mt-3 font-mono text-xs text-ink-muted">
+      <div className="mt-3 font-mono text-xs text-ink-muted tabular-nums">
         {recentTransitions.length > 0 ? (
           recentTransitions.map((segment, i) => (
             <div key={i}>
