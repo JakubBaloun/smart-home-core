@@ -33,7 +33,7 @@ export function AppShell() {
     <div className="flex h-full flex-col sm:flex-row">
       {/* Phone: horizontal tab bar pinned to the bottom (order-2). Tablet/desktop (sm+):
           vertical rail on the left, restored to its original order and column layout. */}
-      <nav className="order-2 flex w-full shrink-0 items-center gap-1 border-t border-line bg-surface-sunken px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:order-1 sm:w-20 sm:flex-col sm:border-t-0 sm:border-r sm:px-2 sm:py-4">
+      <nav className="order-2 flex w-full shrink-0 items-center gap-1 border-t border-line bg-surface-sunken px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:order-1 sm:w-20 sm:min-h-0 sm:flex-col sm:overflow-y-auto sm:border-t-0 sm:border-r sm:px-2 sm:py-4">
         <Link to="/" aria-label="Nexus" title="Nexus" className="hidden text-accent sm:mb-6 sm:block">
           <Ring size={30} strokeWidth={5.5} />
         </Link>
