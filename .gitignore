@@ -48,3 +48,9 @@ backend/src/main/resources/application-dev.yaml
 # Frontend
 frontend/node_modules/
 frontend/dist/
+
+# Local dev script logs
+.dev-logs/
+
+# Brainstorming visual companion
+.superpowers/
