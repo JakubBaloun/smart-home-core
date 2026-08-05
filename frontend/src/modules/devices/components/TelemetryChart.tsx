@@ -89,10 +89,10 @@ export function TelemetryChart({
             <Area
               type="monotone"
               dataKey="value"
-              stroke={seriesColor}
+              stroke={`url(#${gradientId})`}
               strokeWidth={2.5}
-              fill={seriesColor}
-              fillOpacity={0.15}
+              fill={`url(#${gradientId})`}
+              fillOpacity={0.35}
               dot={false}
               activeDot={{ r: 4 }}
             />
@@ -168,10 +168,10 @@ export function TelemetryChart({
             <Area
               type="monotone"
               dataKey="value"
-              stroke={seriesColor}
+              stroke={`url(#${gradientId})`}
               strokeWidth={2.5}
-              fill={seriesColor}
-              fillOpacity={0.15}
+              fill={`url(#${gradientId})`}
+              fillOpacity={0.35}
               dot={false}
               activeDot={{ r: 4 }}
             />
