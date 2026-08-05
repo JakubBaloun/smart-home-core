@@ -15,6 +15,7 @@ function device(overrides: Partial<Device>): Device {
     vendor: null,
     model: null,
     available: true,
+    state: null,
     lastSeen: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

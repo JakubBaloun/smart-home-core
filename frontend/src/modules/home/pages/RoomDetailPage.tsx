@@ -7,7 +7,7 @@ import { rooms } from '@/modules/roomMap/config/rooms'
 import { usePolling } from '@/hooks/usePolling'
 import { Loading } from '@/ui/Loading'
 import { PageHeader } from '@/ui/PageHeader'
-import { RoomDeviceTelemetry } from '../components/RoomDeviceTelemetry'
+import { RoomTelemetryWidgets } from '../components/RoomTelemetryWidgets'
 
 const REFRESH_INTERVAL_MS = 15_000
 const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '7d']
@@ -36,8 +36,6 @@ export function RoomDetailPage() {
   }
 
   const roomReadings = readings?.filter((r) => room.deviceIeeeAddresses.includes(r.device.ieeeAddress)) ?? []
-  const hasSensor = roomReadings.some((r) => r.device.type === 'SENSOR')
-
   return (
     <div className="h-full overflow-y-auto px-6 py-5 lg:px-8">
       <PageHeader title={room.label} back={{ to: '/', label: 'Home' }} />
@@ -49,32 +47,24 @@ export function RoomDetailPage() {
         <>
           <DeviceGrid readings={roomReadings} />
 
-          {hasSensor && (
-            <div className="mt-8">
-              <div className="mb-4 inline-flex rounded-xl border border-line bg-surface-raised p-1">
-                {TIME_RANGES.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRange(r)}
-                    className={`min-h-10 rounded-lg px-4 font-mono text-sm transition ${
-                      range === r ? 'bg-accent text-accent-ink' : 'text-ink-muted hover:text-ink'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-col gap-6">
-                {roomReadings
-                  .filter((r) => r.device.type === 'SENSOR')
-                  .map((r) => (
-                    <RoomDeviceTelemetry key={r.device.id} device={r.device} range={range} />
-                  ))}
-              </div>
+          <div className="mt-8">
+            <div className="mb-4 inline-flex rounded-xl border border-line bg-surface-raised p-1">
+              {TIME_RANGES.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRange(r)}
+                  className={`min-h-10 rounded-lg px-4 font-mono text-sm transition ${
+                    range === r ? 'bg-accent text-accent-ink' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
             </div>
-          )}
+
+            <RoomTelemetryWidgets roomId={room.id} devices={roomReadings.map((reading) => reading.device)} range={range} />
+          </div>
         </>
       )}
     </div>

@@ -12,6 +12,7 @@ const baseDevice: Device = {
   vendor: 'IKEA',
   model: 'TRADFRI',
   available: true,
+  state: null,
   lastSeen: new Date().toISOString(),
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
