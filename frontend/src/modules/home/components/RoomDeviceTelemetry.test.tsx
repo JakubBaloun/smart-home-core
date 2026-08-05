@@ -64,4 +64,21 @@ describe('RoomDeviceTelemetry', () => {
     expect(await screen.findByText('Office temp')).toBeInTheDocument()
     expect(screen.getByText('temperature')).toBeInTheDocument()
   })
+
+  it('does not render battery or linkquality charts', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({
+        deviceName: 'Office temp',
+        values: { temperature: 21.5, battery: 90, linkquality: 120 },
+        lastUpdated: '2026-08-05T10:00:00Z',
+      }),
+    )
+
+    render(<RoomDeviceTelemetry device={device()} range="24h" />)
+
+    expect(await screen.findByText('temperature')).toBeInTheDocument()
+    expect(screen.queryByText('battery')).not.toBeInTheDocument()
+    expect(screen.queryByText('linkquality')).not.toBeInTheDocument()
+  })
 })
+

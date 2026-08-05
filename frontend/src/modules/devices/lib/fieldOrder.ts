@@ -1,4 +1,4 @@
-const DIAGNOSTIC_FIELDS = new Set(['battery', 'linkquality'])
+export const DIAGNOSTIC_FIELDS = new Set(['battery', 'linkquality'])
 
 /** Sorts telemetry fields so battery/linkquality trail everything else, preserving relative order otherwise. */
 export function sortFieldsForDisplay(fields: string[]): string[] {
@@ -8,3 +8,9 @@ export function sortFieldsForDisplay(fields: string[]): string[] {
     return aDiagnostic - bDiagnostic
   })
 }
+
+/** Removes battery/linkquality entirely, preserving the relative order of the rest. */
+export function filterDiagnosticFields(fields: string[]): string[] {
+  return fields.filter((f) => !DIAGNOSTIC_FIELDS.has(f))
+}
+
