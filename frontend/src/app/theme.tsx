@@ -78,6 +78,7 @@ export function useChartPalette() {
     series: token('--cool'),
     accent: token('--accent'),
     ok: token('--ok'),
+    okDark: token('--ok-dark') || 'color-mix(in srgb, var(--ok) 55%, #000)',
     warm: token('--warm'),
     danger: token('--danger'),
     extreme: token('--extreme'),

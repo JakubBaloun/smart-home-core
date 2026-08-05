@@ -28,7 +28,79 @@ export function TelemetryChart({
 
   const data = points.map((p) => ({ time: p.time, value: p.value }))
   const isTemperature = field.toLowerCase().includes('temp')
+  const isHumidity = field.toLowerCase().includes('humid')
   const seriesColor = isTemperature ? palette.warm : palette.series
+
+  if (isHumidity) {
+    const plotHeight = heightPx - TEMP_MARGIN.top - TEMP_MARGIN.bottom
+    return (
+      <div style={{ height: heightPx }} className="w-full font-mono">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data} margin={TEMP_MARGIN}>
+            <defs>
+              {/* Anchored to fixed [0, 100]% domain:
+                  >60%: Red (danger)
+                  50-60%: Orange (warm)
+                  40-50%: Dark green (okDark)
+                  30-40%: Light green (ok)
+                  <30%: Blue (accent) */}
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={plotHeight} gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor={palette.danger} />
+                <stop offset="39.4%" stopColor={palette.danger} />
+                <stop offset="40.6%" stopColor={palette.warm} />
+                <stop offset="49.4%" stopColor={palette.warm} />
+                <stop offset="50.6%" stopColor={palette.okDark} />
+                <stop offset="59.4%" stopColor={palette.okDark} />
+                <stop offset="60.6%" stopColor={palette.ok} />
+                <stop offset="69.4%" stopColor={palette.ok} />
+                <stop offset="70.6%" stopColor={palette.accent} />
+                <stop offset="100%" stopColor={palette.accent} />
+              </linearGradient>
+            </defs>
+            <XAxis
+              dataKey="time"
+              tickFormatter={formatTime}
+              stroke={palette.axis}
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              minTickGap={32}
+            />
+            <YAxis
+              stroke={palette.axis}
+              fontSize={11}
+              tickLine={false}
+              axisLine={false}
+              width={44}
+              tickFormatter={(v: number) => `${v}%`}
+              domain={[0, 100]}
+              ticks={[0, 30, 40, 50, 60, 100]}
+            />
+            <Tooltip
+              labelFormatter={(label) => formatTime(label as string)}
+              formatter={(value) => [`${Number(value).toFixed(1)} %`, 'Humidity']}
+              contentStyle={{
+                background: palette.tooltipBg,
+                border: `1px solid ${palette.tooltipBorder}`,
+                borderRadius: '0.75rem',
+                color: palette.tooltipInk,
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke={`url(#${gradientId})`}
+              strokeWidth={2.5}
+              fill={`url(#${gradientId})`}
+              fillOpacity={0.35}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    )
+  }
 
   // Temperature gets a fixed indoor range and °C formatting so the curve's position is
   // comparable across visits. Assumes all sensors are indoor; revisit if an outdoor
