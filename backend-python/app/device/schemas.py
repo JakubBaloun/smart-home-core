@@ -17,6 +17,7 @@ class DeviceResponse(BaseModel):
     lastSeen: OffsetDateTime | None
     createdAt: OffsetDateTime
     updatedAt: OffsetDateTime
+    state: str | None
 
     # 'model' collides with Pydantic's protected namespace, which is only a warning.
     model_config = ConfigDict(protected_namespaces=())

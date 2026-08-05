@@ -1,0 +1,1 @@
+ALTER TABLE device ADD COLUMN state VARCHAR(10);
