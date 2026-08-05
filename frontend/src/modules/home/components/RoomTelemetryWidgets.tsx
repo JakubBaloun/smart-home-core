@@ -1,6 +1,6 @@
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePolling } from '@/hooks/usePolling'
 import { sendCommand } from '@/modules/devices/api/devices'
 import { getLatestTelemetry } from '@/modules/devices/api/telemetry'
@@ -117,41 +117,75 @@ export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devic
   }
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 auto-rows-[8px] [grid-auto-flow:dense]">
       {visibleSummaries.map(({ device, values }) => {
         if (CONTROLLABLE_TYPES.has(device.type)) {
           const state = optimisticStates[device.id] ?? reportedStates[device.ieeeAddress] ?? device.state
           return (
-            <ControlCard
-              key={device.id}
-              device={device}
-              toggling={togglingId === device.id}
-              state={state}
-              onToggle={() => handleToggle(device, state)}
-            />
+            <MasonryItem key={device.id}>
+              <ControlCard
+                device={device}
+                toggling={togglingId === device.id}
+                state={state}
+                onToggle={() => handleToggle(device, state)}
+              />
+            </MasonryItem>
           )
         }
 
-        if (values?.contact !== undefined) return <ContactCard key={device.id} device={device} contact={values.contact} />
+        if (values?.contact !== undefined) {
+          return (
+            <MasonryItem key={device.id}>
+              <ContactCard device={device} contact={values.contact} />
+            </MasonryItem>
+          )
+        }
 
         const cards = []
         if (values?.temperature !== undefined) {
           cards.push(
-            <TemperatureCard
-              key={`${device.id}-temperature`}
-              device={device}
-              temperature={values.temperature}
-              range={range}
-            />,
+            <MasonryItem key={`${device.id}-temperature`}>
+              <TemperatureCard device={device} temperature={values.temperature} range={range} />
+            </MasonryItem>,
           )
         }
         if (values?.humidity !== undefined) {
           cards.push(
-            <HumidityCard key={`${device.id}-humidity`} device={device} humidity={values.humidity} range={range} />,
+            <MasonryItem key={`${device.id}-humidity`}>
+              <HumidityCard device={device} humidity={values.humidity} range={range} />
+            </MasonryItem>,
           )
         }
         return cards
       })}
+    </div>
+  )
+}
+
+function MasonryItem({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [rowSpan, setRowSpan] = useState(1)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ROW_PX = 8
+    // Root font-size is 18px (see src/index.css), so gap-4 (1rem) computes to 18px here,
+    // not Tailwind's default 16px.
+    const GAP_PX = 18
+    const measure = () => {
+      const height = el.getBoundingClientRect().height
+      setRowSpan(Math.max(1, Math.ceil((height + GAP_PX) / (ROW_PX + GAP_PX))))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={ref} style={{ gridRowEnd: `span ${rowSpan}` }}>
+      {children}
     </div>
   )
 }
