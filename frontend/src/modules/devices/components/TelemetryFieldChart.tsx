@@ -23,7 +23,7 @@ export function TelemetryFieldChart({
   return (
     <div className="rounded-2xl border border-line bg-surface-raised p-4">
       <h3 className="mb-3 font-mono text-xs tracking-wider text-ink-muted uppercase">{field}</h3>
-      <TelemetryChart field={field} points={data?.points ?? []} />
+      <TelemetryChart field={field} points={data?.points ?? []} range={range} />
     </div>
   )
 }
