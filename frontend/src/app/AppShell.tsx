@@ -1,8 +1,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Ring } from '@/ui/Ring'
-import { IconMoon, IconSun } from '@/ui/icons'
 import { shellModules, type ModuleNav } from './modules'
-import { useTheme } from './theme'
+import { ThemePicker } from './ThemePicker'
 
 function RailLink({ nav }: { nav: ModuleNav }) {
   const { pathname } = useLocation()
@@ -27,8 +26,6 @@ function RailLink({ nav }: { nav: ModuleNav }) {
 }
 
 export function AppShell() {
-  const { theme, toggleTheme } = useTheme()
-
   return (
     <div className="flex h-full flex-col sm:flex-row">
       {/* Phone: horizontal tab bar pinned to the bottom (order-2). Tablet/desktop (sm+):
@@ -44,14 +41,7 @@ export function AppShell() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          className="flex size-12 shrink-0 items-center justify-center rounded-full text-ink-muted transition hover:bg-surface-raised hover:text-ink sm:mt-auto"
-        >
-          {theme === 'dark' ? <IconSun className="size-6" /> : <IconMoon className="size-6" />}
-        </button>
+        <ThemePicker />
       </nav>
 
       <main className="order-1 min-w-0 flex-1 overflow-hidden sm:order-2">

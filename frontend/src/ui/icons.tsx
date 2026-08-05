@@ -57,6 +57,18 @@ export function IconMoon(props: IconProps) {
   )
 }
 
+export function IconPalette(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.9-.9 1.9-2 0-.5-.2-1-.5-1.3-.3-.4-.5-.8-.5-1.3 0-1.1.9-2 2-2h1.6a3.5 3.5 0 0 0 3.5-3.5c0-3.8-3.6-6.9-8-6.9z" />
+      <circle cx="7.8" cy="12.5" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="9.6" cy="8.3" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="14.4" cy="8.3" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="16.2" cy="12.5" r="1.1" fill="currentColor" stroke="none" />
+    </Icon>
+  )
+}
+
 export function IconBulb(props: IconProps) {
   return (
     <Icon {...props}>
