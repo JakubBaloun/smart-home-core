@@ -184,7 +184,11 @@ function MasonryItem({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <div ref={ref} style={{ gridRowEnd: `span ${rowSpan}` }}>
+    // self-start: without it, the grid's default stretch alignment forces this div to fill
+    // its assigned row-span height, so ResizeObserver measures the stretched box instead of
+    // the card's true content height — the span converges on whatever it happened to start
+    // at, and taller cards overflow past their track and bleed into the row below.
+    <div ref={ref} className="self-start" style={{ gridRowEnd: `span ${rowSpan}` }}>
       {children}
     </div>
   )
