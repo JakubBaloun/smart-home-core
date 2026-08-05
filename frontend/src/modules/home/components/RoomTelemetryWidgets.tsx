@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { usePolling } from '@/hooks/usePolling'
 import { sendCommand } from '@/modules/devices/api/devices'
 import { getLatestTelemetry } from '@/modules/devices/api/telemetry'
+import { LightControls } from '@/modules/devices/components/LightControls'
 import { TelemetryFieldChart } from '@/modules/devices/components/TelemetryFieldChart'
 import type { Device } from '@/modules/devices/types/device'
 import type { TimeRange } from '@/modules/devices/types/telemetry'
@@ -166,8 +167,9 @@ function ControlCard({
   onToggle: () => void
 }) {
   const isOn = state === 'ON'
+  const isLight = device.type === 'LIGHT'
   return (
-    <section className="flex min-h-48 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5">
+    <section className={`flex ${isLight ? 'min-h-64' : 'min-h-48'} flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5`}>
       <CardHeader device={device} />
       <div className="mt-8">
         <p className={`font-mono text-3xl font-semibold ${isOn ? 'text-warm' : 'text-ink-muted'}`}>
@@ -178,6 +180,10 @@ function ControlCard({
       <Button variant={isOn ? 'neutral' : 'primary'} className="mt-6 w-full" disabled={toggling} onClick={onToggle}>
         {isOn ? 'Vypnout' : 'Zapnout'}
       </Button>
+      {/* Pass the optimistic/reported `state`, not device.state directly, so the sliders
+          enable/disable in step with the Zapnout/Vypnout button instead of lagging behind
+          the next poll. */}
+      {isLight && <LightControls device={{ ...device, state }} />}
     </section>
   )
 }

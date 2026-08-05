@@ -8,6 +8,7 @@ import { fieldClasses, labelClasses } from '@/ui/field'
 import { deleteDevice, getDevice, sendCommand, updateDevice } from '../api/devices'
 import { getLatestTelemetry } from '../api/telemetry'
 import { ContactTimelineCard } from '../components/ContactTimelineCard'
+import { LightControls } from '../components/LightControls'
 import { TelemetryFieldChart } from '../components/TelemetryFieldChart'
 import { sortFieldsForDisplay } from '../lib/fieldOrder'
 import type { DeviceType, UpdateDeviceRequest } from '../types/device'
@@ -56,11 +57,6 @@ export function DeviceDetailPage() {
     } finally {
       setSending(false)
     }
-  }
-
-  const handleSetBrightness = async (brightness: number) => {
-    if (!device) return
-    await sendCommand(device.id, { command: 'setBrightness', payload: { brightness } })
   }
 
   const handleStartEdit = () => {
@@ -209,19 +205,7 @@ export function DeviceDetailPage() {
 
       {device.type === 'LIGHT' && (
         <div className="mt-6 max-w-md">
-          <label htmlFor="brightness" className={labelClasses}>
-            Brightness
-          </label>
-          <input
-            id="brightness"
-            type="range"
-            min={0}
-            max={254}
-            defaultValue={127}
-            onMouseUp={(e) => handleSetBrightness(Number(e.currentTarget.value))}
-            onTouchEnd={(e) => handleSetBrightness(Number(e.currentTarget.value))}
-            className="h-12 w-full accent-accent"
-          />
+          <LightControls device={device} />
         </div>
       )}
 
