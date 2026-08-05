@@ -6,7 +6,6 @@ import { homeModule } from '@/modules/home/routes'
 import { recipesModule } from '@/modules/recipes/routes'
 import { roomMapModule } from '@/modules/roomMap/routes'
 import { shoppingModule } from '@/modules/shopping/routes'
-import { temperatureModule } from '@/modules/temperature/routes'
 import { todoModule } from '@/modules/todo/routes'
 
 export interface ModuleNav {
@@ -32,7 +31,6 @@ export interface ModuleManifest {
 export const shellModules: ModuleManifest[] = [
   homeModule,
   devicesModule,
-  temperatureModule,
   roomMapModule,
   recipesModule,
   shoppingModule,
