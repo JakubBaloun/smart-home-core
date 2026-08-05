@@ -330,6 +330,79 @@ body {
 }
 
 /*
+ * LightControls sliders — custom track/thumb so brightness and color-temperature read as
+ * first-class controls, not a bare <input type="range">. Track/thumb colors go through the
+ * usual semantic tokens via var(). The color-temperature gradient is a fixed depiction of real
+ * bulb color (cool-to-warm white), not an app theme, so — like .theme-swatch-* above — it lives
+ * here as one CSS-only utility instead of a hex literal duplicated across theme blocks or
+ * inlined in the component.
+ */
+/* Overall element height is the touch target (>= 44px, wall-mounted tablet minimum); the
+   visible track itself stays a slim 0.5rem band centered inside it via the track pseudo. */
+.light-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 2.75rem;
+  background: transparent;
+  outline: none;
+}
+
+.light-slider::-webkit-slider-runnable-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.light-slider::-moz-range-track {
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.light-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.625rem;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 3px solid var(--surface-raised);
+  cursor: pointer;
+}
+
+.light-slider::-moz-range-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: var(--accent);
+  border: 3px solid var(--surface-raised);
+  cursor: pointer;
+}
+
+.light-slider-brightness::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--slider-fill, 0%),
+    var(--surface-sunken) var(--slider-fill, 0%)
+  );
+}
+
+.light-slider-brightness::-moz-range-track {
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--slider-fill, 0%),
+    var(--surface-sunken) var(--slider-fill, 0%)
+  );
+}
+
+.light-slider-color-temp::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #a6c8ff 0%, #ffe9c7 55%, #ff9d4d 100%);
+}
+
+.light-slider-color-temp::-moz-range-track {
+  background: linear-gradient(90deg, #a6c8ff 0%, #ffe9c7 55%, #ff9d4d 100%);
+}
+
+/*
  * react-grid-layout overrides — restyle the vendor package's resize handle and
  * drag placeholder using our semantic tokens instead of its packaged icon/colors.
  */
