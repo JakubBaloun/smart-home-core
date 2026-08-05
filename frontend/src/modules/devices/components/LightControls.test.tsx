@@ -87,6 +87,58 @@ describe('LightControls', () => {
     })
   })
 
+  it('does not snap back to a stale polled value after a drag commits', () => {
+    const { rerender } = render(<LightControls device={device({ brightness: 180 })} />)
+    const slider = screen.getByLabelText('Jas')
+
+    fireEvent.pointerDown(slider)
+    fireEvent.change(slider, { target: { value: '200' } })
+    fireEvent.mouseUp(slider, { target: { value: '200' } })
+
+    expect(sendCommand).toHaveBeenCalledWith(1, {
+      command: 'setBrightness',
+      payload: { brightness: 200 },
+    })
+
+    // Simulate a 15s poll resolving with the pre-drag value, which raced ahead of the
+    // command we just sent and lands after the drag has already ended.
+    rerender(<LightControls device={device({ brightness: 180 })} />)
+
+    expect(slider).toHaveValue('200')
+  })
+
+  it('commits the brightness value on keyboard release, not just pointer release', () => {
+    render(<LightControls device={device()} />)
+    const slider = screen.getByLabelText('Jas')
+
+    fireEvent.keyDown(slider)
+    fireEvent.change(slider, { target: { value: '210' } })
+    expect(sendCommand).not.toHaveBeenCalled()
+
+    fireEvent.keyUp(slider, { target: { value: '210' } })
+
+    expect(sendCommand).toHaveBeenCalledWith(1, {
+      command: 'setBrightness',
+      payload: { brightness: 210 },
+    })
+  })
+
+  it('commits the color-temp value on keyboard release, not just pointer release', () => {
+    render(<LightControls device={device()} />)
+    const slider = screen.getByLabelText('Barva světla')
+
+    fireEvent.keyDown(slider)
+    fireEvent.change(slider, { target: { value: '410' } })
+    expect(sendCommand).not.toHaveBeenCalled()
+
+    fireEvent.keyUp(slider, { target: { value: '410' } })
+
+    expect(sendCommand).toHaveBeenCalledWith(1, {
+      command: 'setColorTemp',
+      payload: { color_temp: 410 },
+    })
+  })
+
   it('disables both sliders when the device is off', () => {
     render(<LightControls device={device({ state: 'OFF' })} />)
 

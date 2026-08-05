@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { sendCommand } from '../api/devices'
 import type { Device } from '../types/device'
 
@@ -15,33 +15,52 @@ interface LightControlsProps {
 export function LightControls({ device, disabled }: LightControlsProps) {
   const [brightness, setBrightness] = useState(device.brightness ?? 180)
   const [colorTemp, setColorTemp] = useState(device.colorTemp ?? 320)
-  const [dragging, setDragging] = useState(false)
 
-  // The poll refreshes device.brightness/colorTemp every 15s. Only adopt the server value
-  // while the user isn't actively dragging, otherwise a mid-gesture poll would yank the thumb
-  // back under their finger.
+  // Read (but never a dependency of) the resync effects below: a drag/keyboard gesture in
+  // progress must suppress resync without itself being a trigger for it — see the comment on
+  // those effects.
+  const draggingRef = useRef(false)
+  const lastSentBrightnessRef = useRef<number | null>(null)
+  const lastSentColorTempRef = useRef<number | null>(null)
+
+  // The poll refreshes device.brightness/colorTemp every 15s, and sendCommand doesn't await a
+  // state readback, so a command we just sent can take up to 15s to be reflected in `device`.
+  // These effects only run when the device prop itself changes — not when a gesture ends —
+  // so committing never causes an immediate resync from whatever (possibly stale, pre-gesture)
+  // value the prop still held at that moment. They also ignore a mid-gesture prop update via
+  // draggingRef, and ignore a value that merely confirms the command we ourselves last sent.
   useEffect(() => {
-    if (dragging) return
-    if (device.brightness !== null) setBrightness(device.brightness)
-  }, [device.brightness, dragging])
+    if (draggingRef.current) return
+    if (device.brightness === null) return
+    if (device.brightness === lastSentBrightnessRef.current) return
+    setBrightness(device.brightness)
+  }, [device.brightness])
 
   useEffect(() => {
-    if (dragging) return
-    if (device.colorTemp !== null) setColorTemp(device.colorTemp)
-  }, [device.colorTemp, dragging])
+    if (draggingRef.current) return
+    if (device.colorTemp === null) return
+    if (device.colorTemp === lastSentColorTempRef.current) return
+    setColorTemp(device.colorTemp)
+  }, [device.colorTemp])
 
   const isOff = device.state !== 'ON'
   // Adjusting a light that's off is confusing UX — the slider would move but nothing on the
   // device visibly changes until it's turned on, so both controls are dimmed and inert.
   const isDisabled = disabled || isOff
 
+  const beginGesture = () => {
+    draggingRef.current = true
+  }
+
   const commitBrightness = (value: number) => {
-    setDragging(false)
+    draggingRef.current = false
+    lastSentBrightnessRef.current = value
     void sendCommand(device.id, { command: 'setBrightness', payload: { brightness: value } })
   }
 
   const commitColorTemp = (value: number) => {
-    setDragging(false)
+    draggingRef.current = false
+    lastSentColorTempRef.current = value
     void sendCommand(device.id, { command: 'setColorTemp', payload: { color_temp: value } })
   }
 
@@ -49,6 +68,7 @@ export function LightControls({ device, disabled }: LightControlsProps) {
     ((brightness - BRIGHTNESS_MIN) / (BRIGHTNESS_MAX - BRIGHTNESS_MIN)) * 100,
   )
   const brightnessFillStyle = { '--slider-fill': `${brightnessPercent}%` } as CSSProperties
+  const colorTempKelvin = Math.round(1_000_000 / colorTemp)
 
   return (
     <div className="mt-4 space-y-5">
@@ -65,16 +85,21 @@ export function LightControls({ device, disabled }: LightControlsProps) {
           value={brightness}
           disabled={isDisabled}
           onChange={(e) => setBrightness(Number(e.currentTarget.value))}
-          onPointerDown={() => setDragging(true)}
+          onPointerDown={beginGesture}
+          onKeyDown={beginGesture}
           onMouseUp={(e) => commitBrightness(Number(e.currentTarget.value))}
           onTouchEnd={(e) => commitBrightness(Number(e.currentTarget.value))}
+          onKeyUp={(e) => commitBrightness(Number(e.currentTarget.value))}
           style={brightnessFillStyle}
           className={`light-slider light-slider-brightness w-full ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}
         />
       </div>
 
       <div>
-        <div className="mb-2 text-sm text-ink-muted">Barva světla</div>
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="text-ink-muted">Barva světla</span>
+          <span className="font-mono tabular-nums text-ink-muted">{colorTempKelvin} K</span>
+        </div>
         <input
           type="range"
           aria-label="Barva světla"
@@ -83,9 +108,11 @@ export function LightControls({ device, disabled }: LightControlsProps) {
           value={colorTemp}
           disabled={isDisabled}
           onChange={(e) => setColorTemp(Number(e.currentTarget.value))}
-          onPointerDown={() => setDragging(true)}
+          onPointerDown={beginGesture}
+          onKeyDown={beginGesture}
           onMouseUp={(e) => commitColorTemp(Number(e.currentTarget.value))}
           onTouchEnd={(e) => commitColorTemp(Number(e.currentTarget.value))}
+          onKeyUp={(e) => commitColorTemp(Number(e.currentTarget.value))}
           className={`light-slider light-slider-color-temp w-full ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}
         />
         <div className="mt-1 flex justify-between text-xs text-ink-faint">
