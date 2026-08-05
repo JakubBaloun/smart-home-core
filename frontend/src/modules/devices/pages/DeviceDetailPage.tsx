@@ -6,9 +6,9 @@ import { Loading } from '@/ui/Loading'
 import { PageHeader } from '@/ui/PageHeader'
 import { fieldClasses, labelClasses } from '@/ui/field'
 import { deleteDevice, getDevice, sendCommand, updateDevice } from '../api/devices'
-import { getLatestTelemetry, getRangeBounds, getTelemetryHistory } from '../api/telemetry'
-import { ContactTimeline } from '../components/ContactTimeline'
-import { TelemetryChart } from '../components/TelemetryChart'
+import { getLatestTelemetry } from '../api/telemetry'
+import { ContactTimelineCard } from '../components/ContactTimelineCard'
+import { TelemetryFieldChart } from '../components/TelemetryFieldChart'
 import { sortFieldsForDisplay } from '../lib/fieldOrder'
 import type { DeviceType, UpdateDeviceRequest } from '../types/device'
 import type { TimeRange } from '../types/telemetry'
@@ -261,57 +261,6 @@ export function DeviceDetailPage() {
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-function TelemetryFieldChart({
-  deviceKey,
-  field,
-  range,
-}: {
-  deviceKey: string
-  field: string
-  range: TimeRange
-}) {
-  const { data } = usePolling(() => getTelemetryHistory(deviceKey, field, range), REFRESH_INTERVAL_MS, [
-    deviceKey,
-    field,
-    range,
-  ])
-
-  return (
-    <div className="rounded-2xl border border-line bg-surface-raised p-4">
-      <h3 className="mb-3 font-mono text-xs tracking-wider text-ink-muted uppercase">{field}</h3>
-      <TelemetryChart field={field} points={data?.points ?? []} />
-    </div>
-  )
-}
-
-function ContactTimelineCard({
-  deviceKey,
-  range,
-  currentValue,
-}: {
-  deviceKey: string
-  range: TimeRange
-  currentValue?: number
-}) {
-  const { data } = usePolling(() => getTelemetryHistory(deviceKey, 'contact', range), REFRESH_INTERVAL_MS, [
-    deviceKey,
-    range,
-  ])
-  const { from, to } = getRangeBounds(range)
-
-  return (
-    <div className="rounded-2xl border border-line bg-surface-raised p-4">
-      <h3 className="mb-3 font-mono text-xs tracking-wider text-ink-muted uppercase">contact</h3>
-      <ContactTimeline
-        points={data?.points ?? []}
-        fromMs={from.getTime()}
-        toMs={to.getTime()}
-        currentValue={currentValue}
-      />
     </div>
   )
 }
