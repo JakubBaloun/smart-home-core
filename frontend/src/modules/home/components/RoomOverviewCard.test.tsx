@@ -8,7 +8,7 @@ function room(overrides: Partial<RoomConfig> = {}): RoomConfig {
   return {
     id: 'office',
     label: 'Pracovna',
-    sensorIeeeAddresses: ['0xe456acfffe5dc028', '0x54dce9fffefa56fb'],
+    deviceIeeeAddresses: ['0xe456acfffe5dc028', '0x54dce9fffefa56fb'],
     rects: [{ top: 0, left: 0, width: 100, height: 100 }],
     ...overrides,
   }
@@ -46,7 +46,7 @@ describe('RoomOverviewCard', () => {
   })
 
   it('renders a muted "no sensor" state when nothing is reported', () => {
-    const reading: RoomReading = { room: room({ sensorIeeeAddresses: [] }) }
+    const reading: RoomReading = { room: room({ deviceIeeeAddresses: [] }) }
 
     render(<RoomOverviewCard reading={reading} />)
 

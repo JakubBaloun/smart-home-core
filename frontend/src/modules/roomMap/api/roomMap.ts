@@ -17,8 +17,8 @@ export async function getRoomReadings(): Promise<RoomReading[]> {
     rooms.map(async (room): Promise<RoomReading> => {
       const reading: RoomReading = { room }
 
-      for (const sensorIeeeAddress of room.sensorIeeeAddresses) {
-        const device = devices.find((d) => d.ieeeAddress === sensorIeeeAddress)
+      for (const deviceIeeeAddress of room.deviceIeeeAddresses) {
+        const device = devices.find((d) => d.ieeeAddress === deviceIeeeAddress)
         if (!device) continue
 
         try {
