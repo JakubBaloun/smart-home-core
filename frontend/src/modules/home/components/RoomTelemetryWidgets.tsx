@@ -156,8 +156,13 @@ export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devic
   )
 }
 
-function CardHeader({ device }: { device: Device }) {
-  const Icon = TYPE_ICON[device.type]
+function CardHeader({
+  device,
+  icon: Icon = TYPE_ICON[device.type],
+}: {
+  device: Device
+  icon?: ComponentType<{ className?: string }>
+}) {
   return (
     <div className="flex items-start justify-between gap-3">
       <Link to={`/device/${device.id}`} className="flex min-w-0 items-center gap-3 hover:text-accent">
@@ -223,25 +228,19 @@ function TemperatureCard({ device, temperature, range }: { device: Device; tempe
   const [historyOpen, setHistoryOpen] = useState(false)
 
   return (
-    <section className="rounded-2xl border border-line bg-surface-raised p-5">
-      <div className="flex items-start justify-between gap-3">
-        <Link to={`/device/${device.id}`} className="flex min-w-0 items-center gap-3 hover:text-accent">
-          <IconThermometer className="size-5 shrink-0 text-ink-muted" />
-          <h3 className="truncate text-base font-medium text-ink">{device.friendlyName}</h3>
-        </Link>
-        <span title={device.available ? 'Online' : 'Offline'}>
-          <LiveDot online={device.available} />
-        </span>
+    <section className="flex min-h-48 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5">
+      <CardHeader device={device} icon={IconThermometer} />
+      <div className="mt-8">
+        <p className="font-mono text-3xl font-semibold text-warm">{temperature.toFixed(1)}°C</p>
+        <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
+          {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
+        </Button>
+        {historyOpen && (
+          <div className="mt-4 rounded-xl border border-line bg-surface-sunken/40 p-3">
+            <TelemetryFieldChart deviceKey={device.ieeeAddress} field="temperature" range={range} />
+          </div>
+        )}
       </div>
-      <p className="mt-8 font-mono text-3xl font-semibold text-warm">{temperature.toFixed(1)}°C</p>
-      <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
-        {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
-      </Button>
-      {historyOpen && (
-        <div className="mt-4 rounded-xl border border-line bg-surface-sunken/40 p-3">
-          <TelemetryFieldChart deviceKey={device.ieeeAddress} field="temperature" range={range} />
-        </div>
-      )}
     </section>
   )
 }
@@ -250,25 +249,19 @@ function HumidityCard({ device, humidity, range }: { device: Device; humidity: n
   const [historyOpen, setHistoryOpen] = useState(false)
 
   return (
-    <section className="rounded-2xl border border-line bg-surface-raised p-5">
-      <div className="flex items-start justify-between gap-3">
-        <Link to={`/device/${device.id}`} className="flex min-w-0 items-center gap-3 hover:text-accent">
-          <IconDroplet className="size-5 shrink-0 text-ink-muted" />
-          <h3 className="truncate text-base font-medium text-ink">{device.friendlyName}</h3>
-        </Link>
-        <span title={device.available ? 'Online' : 'Offline'}>
-          <LiveDot online={device.available} />
-        </span>
+    <section className="flex min-h-48 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5">
+      <CardHeader device={device} icon={IconDroplet} />
+      <div className="mt-8">
+        <p className="font-mono text-3xl font-semibold text-cool">{Math.round(humidity)}%</p>
+        <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
+          {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
+        </Button>
+        {historyOpen && (
+          <div className="mt-4 rounded-xl border border-line bg-surface-sunken/40 p-3">
+            <TelemetryFieldChart deviceKey={device.ieeeAddress} field="humidity" range={range} />
+          </div>
+        )}
       </div>
-      <p className="mt-8 font-mono text-3xl font-semibold text-cool">{Math.round(humidity)}%</p>
-      <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
-        {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
-      </Button>
-      {historyOpen && (
-        <div className="mt-4 rounded-xl border border-line bg-surface-sunken/40 p-3">
-          <TelemetryFieldChart deviceKey={device.ieeeAddress} field="humidity" range={range} />
-        </div>
-      )}
     </section>
   )
 }
