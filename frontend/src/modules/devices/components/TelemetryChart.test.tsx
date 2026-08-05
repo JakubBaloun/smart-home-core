@@ -9,7 +9,7 @@ vi.mock('recharts', async () => {
   const original = await vi.importActual<typeof import('recharts')>('recharts')
   return {
     ...original,
-    ResponsiveContainer: ({ children }: { children: React.ReactElement }) =>
+    ResponsiveContainer: ({ children }: { children: React.ReactElement<{ width?: number; height?: number }> }) =>
       React.cloneElement(children, { width: 800, height: 400 }),
   }
 })
