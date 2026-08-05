@@ -14,8 +14,13 @@ import { clearRoomLayout, loadRoomLayout, saveRoomLayout } from '../lib/roomLayo
 
 const REFRESH_INTERVAL_MS = 15_000
 const GRID_BREAKPOINTS = { lg: 1024, md: 768, sm: 640 }
-const GRID_COLS = { lg: 5, md: 4, sm: 3 }
-const GRID_ROW_HEIGHT = 160
+// Cols/row-height are 2x the visual default card size so cards can shrink below
+// default (down to 1 unit) as well as grow, instead of the default already sitting
+// at the grid's minimum resizable unit.
+const GRID_COLS = { lg: 10, md: 8, sm: 6 }
+const GRID_ROW_HEIGHT = 80
+const DEFAULT_CARD_COLS = 5
+const DEFAULT_CARD_UNITS = 2
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -32,7 +37,10 @@ export function RoomOverviewPage() {
 
   const handleLayoutChange = (_current: unknown, allLayouts: ResponsiveLayouts) => {
     setLayouts(allLayouts)
-    if (suppressNextSaveRef.current) {
+    // Outside edit mode the grid is not draggable/resizable, but react-grid-layout still
+    // fires onLayoutChange once on mount while normalizing the `layouts` prop — don't
+    // persist that, only user-driven changes made while editing.
+    if (!editing || suppressNextSaveRef.current) {
       suppressNextSaveRef.current = false
       return
     }
@@ -69,30 +77,39 @@ export function RoomOverviewPage() {
       />
       {loading && !readings && <Loading label="Waking Nexus…" />}
       {error && <p className="text-danger">Failed to load room data: {error.message}</p>}
-      {readings && !editing && (
+      {readings && !editing && !layouts && (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {readings.map((reading) => (
             <RoomOverviewCard key={reading.room.id} reading={reading} />
           ))}
         </div>
       )}
-      {readings && editing && (
+      {readings && (editing || layouts) && (
         <ResponsiveGridLayout
           className="layout"
           breakpoints={GRID_BREAKPOINTS}
           cols={GRID_COLS}
           rowHeight={GRID_ROW_HEIGHT}
           layouts={layouts ?? undefined}
-          isDraggable
-          isResizable
+          isDraggable={editing}
+          isResizable={editing}
           onLayoutChange={handleLayoutChange}
         >
           {readings.map((reading, index) => (
             <div
               key={reading.room.id}
-              data-grid={layouts ? undefined : { x: index % 5, y: Math.floor(index / 5), w: 1, h: 1 }}
+              data-grid={
+                layouts
+                  ? undefined
+                  : {
+                      x: (index % DEFAULT_CARD_COLS) * DEFAULT_CARD_UNITS,
+                      y: Math.floor(index / DEFAULT_CARD_COLS) * DEFAULT_CARD_UNITS,
+                      w: DEFAULT_CARD_UNITS,
+                      h: DEFAULT_CARD_UNITS,
+                    }
+              }
             >
-              <RoomOverviewCard reading={reading} linkable={false} />
+              <RoomOverviewCard reading={reading} linkable={!editing} />
             </div>
           ))}
         </ResponsiveGridLayout>
