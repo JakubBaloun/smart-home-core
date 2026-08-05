@@ -5,6 +5,7 @@ and BridgeStateConsumer. Each consumer swallows its own failures, matching the
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from app.common.events import event_bus
 from app.device.schemas import Z2MDevicePayload
@@ -33,6 +34,12 @@ def consume_devices(topic: str, payload: bytes) -> None:
         device_service.sync_devices(dtos)
     except Exception as e:
         log.error("Failed to process Z2M device discovery: %s", e)
+
+
+def _as_optional_int(value: Any) -> int | None:
+    """Reject bools: Python's `bool` is an `int` subclass, but JSON `true`/`false`
+    is not a brightness/color_temp reading."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 def consume_telemetry(topic: str, payload: bytes) -> None:
@@ -66,19 +73,12 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
         except Exception as e:
             log.error("Failed to update state for %s: %s", device_name, e)
 
-    brightness = parsed.get("brightness")
-    color_temp = parsed.get("color_temp")
-    if identity is not None and (
-        isinstance(brightness, int)
-        and not isinstance(brightness, bool)
-        or isinstance(color_temp, int)
-        and not isinstance(color_temp, bool)
-    ):
+    brightness = _as_optional_int(parsed.get("brightness"))
+    color_temp = _as_optional_int(parsed.get("color_temp"))
+    if identity is not None and (brightness is not None or color_temp is not None):
         try:
             device_service.update_light_state(
-                identity.ieee_address,
-                brightness=brightness if isinstance(brightness, int) and not isinstance(brightness, bool) else None,
-                color_temp=color_temp if isinstance(color_temp, int) and not isinstance(color_temp, bool) else None,
+                identity.ieee_address, brightness=brightness, color_temp=color_temp
             )
         except Exception as e:
             log.error("Failed to update light state for %s: %s", device_name, e)

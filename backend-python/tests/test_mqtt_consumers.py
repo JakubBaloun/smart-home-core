@@ -194,6 +194,69 @@ def test_consume_telemetry_writes_brightness_and_color_temp_to_postgres_not_infl
     assert device.color_temp == 300
 
 
+def test_consume_telemetry_partial_brightness_update_does_not_clobber_color_temp(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:BB",
+                friendly_name="bedroom_light",
+                type=DeviceType.LIGHT.value,
+                available=True,
+                brightness=50,
+                color_temp=250,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry("zigbee2mqtt/bedroom_light", _encode({"brightness": 200}))
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:BB", session)
+    assert device.brightness == 200
+    assert device.color_temp == 250
+
+
+def test_consume_telemetry_partial_color_temp_update_does_not_clobber_brightness(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:CC",
+                friendly_name="bedroom_light_2",
+                type=DeviceType.LIGHT.value,
+                available=True,
+                brightness=50,
+                color_temp=250,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry("zigbee2mqtt/bedroom_light_2", _encode({"color_temp": 400}))
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:CC", session)
+    assert device.brightness == 50
+    assert device.color_temp == 400
+
+
+def test_consume_telemetry_boolean_brightness_is_rejected(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:DD",
+                friendly_name="bool_light",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry("zigbee2mqtt/bool_light", _encode({"brightness": True}))
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:DD", session)
+    assert device.brightness is None
+
+
 def test_consume_telemetry_brightness_for_unknown_device_does_not_raise(written):
     consumers.consume_telemetry("zigbee2mqtt/ghost", _encode({"brightness": 180, "color_temp": 300}))
     assert written == []
