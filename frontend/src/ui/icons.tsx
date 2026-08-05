@@ -227,3 +227,21 @@ export function IconCalendar(props: IconProps) {
     </Icon>
   )
 }
+
+export function IconPencil(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20h4.5L19.5 9a2.1 2.1 0 0 0-4.5-4.5L4 15.5z" />
+      <path d="m13.5 6.5 4 4" />
+    </Icon>
+  )
+}
+
+export function IconRefreshCcw(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 12a8 8 0 0 1 14-5.2M4 12a8 8 0 0 0 14 5.2" />
+      <path d="M18 3.5v4h-4M6 20.5v-4h4" />
+    </Icon>
+  )
+}

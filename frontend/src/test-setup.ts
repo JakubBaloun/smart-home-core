@@ -44,3 +44,20 @@ Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
   writable: true,
 })
+
+/*
+ * jsdom has no ResizeObserver. react-grid-layout's WidthProvider uses one to track
+ * container width, so components that render it (e.g. RoomOverviewPage's edit mode)
+ * need at least a no-op stub to mount in tests.
+ */
+class ResizeObserverStub {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  value: ResizeObserverStub,
+  configurable: true,
+  writable: true,
+})

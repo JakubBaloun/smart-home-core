@@ -328,3 +328,28 @@ body {
 .theme-swatch-midnight-chrome {
   background: linear-gradient(to right, #0d0f14 50%, #4f9dff 50%);
 }
+
+/*
+ * react-grid-layout overrides — restyle the vendor package's resize handle and
+ * drag placeholder using our semantic tokens instead of its packaged icon/colors.
+ */
+.react-grid-item > .react-resizable-handle {
+  background-image: none;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--line-strong);
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: var(--accent);
+  opacity: 0.15;
+  border-radius: 1rem;
+}
