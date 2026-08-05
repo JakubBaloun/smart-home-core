@@ -34,6 +34,7 @@
   --cool: #4fb8c9;
   --warm: #e0a458;
   --danger: #dd5b44;
+  --extreme: #a3291f;
 }
 
 [data-theme='light'] {
@@ -59,6 +60,7 @@
   --cool: #1f7a8c;
   --warm: #b97f35;
   --danger: #b8382a;
+  --extreme: #7a1f17;
 }
 
 @theme {
@@ -92,6 +94,7 @@
   --color-cool: var(--cool);
   --color-warm: var(--warm);
   --color-danger: var(--danger);
+  --color-extreme: var(--extreme);
 }
 
 html,

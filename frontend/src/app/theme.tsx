@@ -47,7 +47,11 @@ export function useChartPalette() {
   const token = (name: string) => style.getPropertyValue(name).trim()
   return {
     series: token('--cool'),
+    accent: token('--accent'),
+    ok: token('--ok'),
     warm: token('--warm'),
+    danger: token('--danger'),
+    extreme: token('--extreme'),
     axis: token('--ink-faint'),
     tooltipBg: token('--overlay'),
     tooltipBorder: token('--line'),

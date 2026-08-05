@@ -42,9 +42,17 @@ export function TelemetryChart({
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={TEMP_MARGIN}>
             <defs>
+              {/* Anchored to the fixed [14, 32] domain, not data range. Bands follow how a
+                  bedroom actually feels: <17 cold, 17-19 cool, 19-22 ideal, 22-25 warm,
+                  25-28 hot, >28 extreme. */}
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={plotHeight} gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stopColor={palette.warm} />
-                <stop offset="100%" stopColor={palette.series} />
+                <stop offset="0%" stopColor={palette.extreme} />
+                <stop offset="22.2%" stopColor={palette.danger} />
+                <stop offset="38.9%" stopColor={palette.warm} />
+                <stop offset="55.6%" stopColor={palette.ok} />
+                <stop offset="72.2%" stopColor={palette.ok} />
+                <stop offset="83.3%" stopColor={palette.series} />
+                <stop offset="100%" stopColor={palette.accent} />
               </linearGradient>
             </defs>
             <XAxis
