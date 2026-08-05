@@ -74,7 +74,7 @@ export function TelemetryChart({
               width={44}
               tickFormatter={(v: number) => `${v}%`}
               domain={[0, 100]}
-              ticks={[0, 30, 40, 50, 60, 100]}
+              ticks={[0, 20, 40, 60, 80, 100]}
             />
             <Tooltip
               labelFormatter={(label) => formatTime(label as string)}
