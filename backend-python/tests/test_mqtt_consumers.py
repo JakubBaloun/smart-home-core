@@ -168,6 +168,37 @@ def test_consume_telemetry_writes_state_to_postgres_not_influx(written):
     assert device.state == "ON"
 
 
+def test_consume_telemetry_writes_brightness_and_color_temp_to_postgres_not_influx(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:AA",
+                friendly_name="living_room_light",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/living_room_light",
+        _encode({"brightness": 180, "color_temp": 300}),
+    )
+
+    # brightness/color_temp never reach InfluxDB
+    assert written == []
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:AA", session)
+    assert device.brightness == 180
+    assert device.color_temp == 300
+
+
+def test_consume_telemetry_brightness_for_unknown_device_does_not_raise(written):
+    consumers.consume_telemetry("zigbee2mqtt/ghost", _encode({"brightness": 180, "color_temp": 300}))
+    assert written == []
+
+
 def test_consume_telemetry_state_only_payload_updates_device_without_influx_write(written):
     with transaction() as session:
         device_repository.save(

@@ -66,6 +66,23 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
         except Exception as e:
             log.error("Failed to update state for %s: %s", device_name, e)
 
+    brightness = parsed.get("brightness")
+    color_temp = parsed.get("color_temp")
+    if identity is not None and (
+        isinstance(brightness, int)
+        and not isinstance(brightness, bool)
+        or isinstance(color_temp, int)
+        and not isinstance(color_temp, bool)
+    ):
+        try:
+            device_service.update_light_state(
+                identity.ieee_address,
+                brightness=brightness if isinstance(brightness, int) and not isinstance(brightness, bool) else None,
+                color_temp=color_temp if isinstance(color_temp, int) and not isinstance(color_temp, bool) else None,
+            )
+        except Exception as e:
+            log.error("Failed to update light state for %s: %s", device_name, e)
+
     fields = {k: v for k, v in parsed.items() if k in KNOWN_FIELDS}
     if not fields:
         log.debug("No known telemetry fields in message from %s, skipping", device_name)

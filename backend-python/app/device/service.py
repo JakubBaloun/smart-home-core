@@ -83,6 +83,16 @@ class DeviceService:
             return
         event_bus.publish(DeviceStateChangedEvent(ieee_address, state))
 
+    def update_light_state(self, ieee_address: str, *, brightness: int | None = None, color_temp: int | None = None) -> None:
+        if brightness is None and color_temp is None:
+            return
+        with transaction() as session:
+            updated = device_repository.update_light_state_by_ieee(
+                ieee_address, brightness=brightness, color_temp=color_temp, session=session
+            )
+        if updated == 0:
+            log.debug("Light state update for unknown device '%s' ignored", ieee_address)
+
     def get_all_devices(self) -> list[Device]:
         with read_session() as session:
             devices = device_repository.list_all(session)
