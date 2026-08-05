@@ -1,15 +1,18 @@
+import { Link } from 'react-router-dom'
 import type { RoomReading } from '@/modules/roomMap/api/roomMap'
 
-export function RoomOverviewCard({ reading }: { reading: RoomReading }) {
+export function RoomOverviewCard({
+  reading,
+  linkable = true,
+}: {
+  reading: RoomReading
+  linkable?: boolean
+}) {
   const { room, temperature, humidity, contact } = reading
   const hasData = temperature !== undefined || humidity !== undefined || contact !== undefined
 
-  return (
-    <div
-      className={`rounded-2xl border p-4 transition ${
-        hasData ? 'border-line bg-surface-raised' : 'border-line/60 bg-surface-raised/40'
-      }`}
-    >
+  const content = (
+    <>
       <h3 className={`truncate text-sm ${hasData ? 'text-ink-muted' : 'text-ink-faint'}`}>{room.label}</h3>
 
       {hasData ? (
@@ -35,6 +38,20 @@ export function RoomOverviewCard({ reading }: { reading: RoomReading }) {
       ) : (
         <p className="mt-2 font-mono text-xs text-ink-faint">bez senzoru</p>
       )}
-    </div>
+    </>
+  )
+
+  const className = `block h-full rounded-2xl border p-4 transition ${
+    hasData ? 'border-line bg-surface-raised' : 'border-line/60 bg-surface-raised/40'
+  } ${linkable ? 'hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lg active:scale-[0.98]' : ''}`
+
+  if (!linkable) {
+    return <div className={className}>{content}</div>
+  }
+
+  return (
+    <Link to={`/room/${room.id}`} className={className}>
+      {content}
+    </Link>
   )
 }

@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RoomOverviewPage } from './RoomOverviewPage'
 
@@ -24,7 +25,11 @@ describe('RoomOverviewPage', () => {
       return Promise.resolve(new Response('not found', { status: 404 }))
     })
 
-    render(<RoomOverviewPage />)
+    render(
+      <MemoryRouter>
+        <RoomOverviewPage />
+      </MemoryRouter>,
+    )
 
     await waitFor(() => expect(screen.getByText('Pracovna')).toBeInTheDocument())
     expect(screen.getByText('Ložnice')).toBeInTheDocument()

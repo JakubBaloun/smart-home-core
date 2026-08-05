@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { RoomOverviewCard } from './RoomOverviewCard'
 import type { RoomReading } from '@/modules/roomMap/api/roomMap'
@@ -14,11 +15,19 @@ function room(overrides: Partial<RoomConfig> = {}): RoomConfig {
   }
 }
 
+function renderCard(reading: RoomReading, linkable?: boolean) {
+  return render(
+    <MemoryRouter>
+      <RoomOverviewCard reading={reading} linkable={linkable} />
+    </MemoryRouter>,
+  )
+}
+
 describe('RoomOverviewCard', () => {
   it('shows temperature, humidity, and a closed badge when all three are reported', () => {
     const reading: RoomReading = { room: room(), temperature: 21.4, humidity: 48, contact: true }
 
-    render(<RoomOverviewCard reading={reading} />)
+    renderCard(reading)
 
     expect(screen.getByText('Pracovna')).toBeInTheDocument()
     expect(screen.getByText('21.4°')).toBeInTheDocument()
@@ -29,7 +38,7 @@ describe('RoomOverviewCard', () => {
   it('shows an open badge when contact is false', () => {
     const reading: RoomReading = { room: room(), contact: false }
 
-    render(<RoomOverviewCard reading={reading} />)
+    renderCard(reading)
 
     expect(screen.getByText('otevřeno')).toBeInTheDocument()
   })
@@ -37,7 +46,7 @@ describe('RoomOverviewCard', () => {
   it('omits humidity and the door badge when only temperature is reported', () => {
     const reading: RoomReading = { room: room(), temperature: 19.0 }
 
-    render(<RoomOverviewCard reading={reading} />)
+    renderCard(reading)
 
     expect(screen.getByText('19.0°')).toBeInTheDocument()
     expect(screen.queryByText('%')).not.toBeInTheDocument()
@@ -48,9 +57,26 @@ describe('RoomOverviewCard', () => {
   it('renders a muted "no sensor" state when nothing is reported', () => {
     const reading: RoomReading = { room: room({ deviceIeeeAddresses: [] }) }
 
-    render(<RoomOverviewCard reading={reading} />)
+    renderCard(reading)
 
     expect(screen.getByText('Pracovna')).toBeInTheDocument()
     expect(screen.getByText('bez senzoru')).toBeInTheDocument()
+  })
+
+  it('links to the room detail page by default', () => {
+    const reading: RoomReading = { room: room() }
+
+    renderCard(reading)
+
+    expect(screen.getByRole('link')).toHaveAttribute('href', '/room/office')
+  })
+
+  it('renders as a plain, non-navigating container when linkable is false', () => {
+    const reading: RoomReading = { room: room() }
+
+    renderCard(reading, false)
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByText('Pracovna')).toBeInTheDocument()
   })
 })
