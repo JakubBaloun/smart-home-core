@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { usePolling } from '@/hooks/usePolling'
 import { getTelemetryHistory } from '@/modules/devices/api/telemetry'
+import { TelemetryChart } from '@/modules/devices/components/TelemetryChart'
 import { formatLastSeen } from '@/modules/devices/format'
 import type { Device } from '@/modules/devices/types/device'
 import type { LatestTelemetryResponse, TimeRange } from '@/modules/devices/types/telemetry'
 import { IconThermometer } from '@/ui/icons'
 import { LiveDot } from '@/ui/LiveDot'
-import { TemperatureChart } from './TemperatureChart'
 
 const REFRESH_INTERVAL_MS = 15_000
 const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '7d']
@@ -74,7 +74,7 @@ export function TemperatureCard({
             </button>
           ))}
         </div>
-        <TemperatureChart points={history?.points ?? []} />
+        <TelemetryChart field="temperature" points={history?.points ?? []} heightClassName="h-48" />
       </div>
     </div>
   )
