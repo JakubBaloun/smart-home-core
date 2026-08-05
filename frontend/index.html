@@ -7,13 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nexus</title>
     <script>
-      const stored = localStorage.getItem('nexus-theme')
-      document.documentElement.dataset.theme =
-        stored === 'light' || stored === 'dark'
-          ? stored
-          : matchMedia('(prefers-color-scheme: light)').matches
-            ? 'light'
-            : 'dark'
+      const KNOWN = ['light', 'graphite', 'obsidian-aurora', 'amber-forge', 'midnight-chrome']
+      let stored = localStorage.getItem('nexus-theme')
+      if (stored === 'dark') stored = 'graphite'
+      const chosen = KNOWN.includes(stored)
+        ? stored
+        : matchMedia('(prefers-color-scheme: light)').matches
+          ? 'light'
+          : 'graphite'
+      document.documentElement.dataset.theme = chosen
     </script>
   </head>
   <body>

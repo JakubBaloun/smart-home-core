@@ -1,32 +1,61 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
-export type Theme = 'dark' | 'light'
+export type Theme = 'light' | 'graphite' | 'obsidian-aurora' | 'amber-forge' | 'midnight-chrome'
+
+export const THEMES: ReadonlyArray<{ id: Theme; label: string; mode: 'light' | 'dark' }> = [
+  { id: 'light', label: 'Light', mode: 'light' },
+  { id: 'graphite', label: 'Graphite', mode: 'dark' },
+  { id: 'obsidian-aurora', label: 'Obsidian Aurora', mode: 'dark' },
+  { id: 'amber-forge', label: 'Amber Forge', mode: 'dark' },
+  { id: 'midnight-chrome', label: 'Midnight Chrome', mode: 'dark' },
+]
+
+const KNOWN_THEMES = new Set<Theme>(THEMES.map((t) => t.id))
 
 const STORAGE_KEY = 'nexus-theme'
 
 interface ThemeContextValue {
   theme: Theme
-  toggleTheme: () => void
+  setTheme: (theme: Theme) => void
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: 'dark', toggleTheme: () => {} })
+const ThemeContext = createContext<ThemeContextValue>({ theme: 'graphite', setTheme: () => {} })
+
+function isKnownTheme(value: string | null): value is Theme {
+  return value !== null && KNOWN_THEMES.has(value as Theme)
+}
+
+function resolveInitialTheme(): Theme {
+  const stored = localStorage.getItem(STORAGE_KEY)
+
+  if (stored === 'dark') {
+    localStorage.setItem(STORAGE_KEY, 'graphite')
+    return 'graphite'
+  }
+
+  if (isKnownTheme(stored)) {
+    return stored
+  }
+
+  return matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'graphite'
+}
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // index.html sets data-theme before first paint; the provider just mirrors it.
-  const [theme, setTheme] = useState<Theme>(() =>
-    document.documentElement.dataset.theme === 'light' ? 'light' : 'dark',
-  )
+  // index.html sets data-theme before first paint; the provider mirrors it and
+  // migrates any legacy/unknown stored value.
+  const [theme, setThemeState] = useState<Theme>(() => {
+    const resolved = resolveInitialTheme()
+    document.documentElement.dataset.theme = resolved
+    return resolved
+  })
 
-  const toggleTheme = useCallback(() => {
-    setTheme((current) => {
-      const next = current === 'dark' ? 'light' : 'dark'
-      document.documentElement.dataset.theme = next
-      localStorage.setItem(STORAGE_KEY, next)
-      return next
-    })
+  const setTheme = useCallback((next: Theme) => {
+    document.documentElement.dataset.theme = next
+    localStorage.setItem(STORAGE_KEY, next)
+    setThemeState(next)
   }, [])
 
-  const value = useMemo(() => ({ theme, toggleTheme }), [theme, toggleTheme])
+  const value = useMemo(() => ({ theme, setTheme }), [theme, setTheme])
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
