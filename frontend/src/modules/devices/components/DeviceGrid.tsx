@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { IconChevronUp } from '@/ui/icons'
 import type { DeviceReading } from '../api/deviceReadings'
 import type { Device } from '../types/device'
 import { DeviceCard } from './DeviceCard'
@@ -18,6 +20,8 @@ const SECTIONS: Section[] = [
 ]
 
 export function DeviceGrid({ readings }: { readings: DeviceReading[] }) {
+  const [collapsed, setCollapsed] = useState(false)
+
   if (readings.length === 0) {
     return <p className="text-ink-muted">No devices found.</p>
   }
@@ -25,33 +29,46 @@ export function DeviceGrid({ readings }: { readings: DeviceReading[] }) {
   let cardIndex = 0
 
   return (
-    <div className="flex flex-col gap-6">
-      {SECTIONS.map((section) => {
-        const sectionReadings = readings.filter((r) => section.types.includes(r.device.type))
-        if (sectionReadings.length === 0) return null
+    <div>
+      <button
+        type="button"
+        onClick={() => setCollapsed((v) => !v)}
+        className="mb-4 flex items-center gap-2 text-sm text-ink-muted hover:text-ink"
+      >
+        <IconChevronUp className={`size-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+        Zařízení ({readings.length})
+      </button>
 
-        return (
-          <div key={section.label}>
-            <h2 className="mb-3 border-b border-line pb-2 text-xs tracking-wide text-ink-muted uppercase">
-              {section.label}
-            </h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {sectionReadings.map(({ device, liveValue }) => {
-                const delay = cardIndex < STAGGER_LIMIT ? cardIndex * STAGGER_STEP_MS : 0
-                cardIndex += 1
-                return (
-                  <DeviceCard
-                    key={device.id}
-                    device={device}
-                    liveValue={liveValue}
-                    style={{ animationDelay: `${delay}ms` }}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
+      {!collapsed && (
+        <div className="flex flex-col gap-6">
+          {SECTIONS.map((section) => {
+            const sectionReadings = readings.filter((r) => section.types.includes(r.device.type))
+            if (sectionReadings.length === 0) return null
+
+            return (
+              <div key={section.label}>
+                <h2 className="mb-3 border-b border-line pb-2 text-xs tracking-wide text-ink-muted uppercase">
+                  {section.label}
+                </h2>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {sectionReadings.map(({ device, liveValue }) => {
+                    const delay = cardIndex < STAGGER_LIMIT ? cardIndex * STAGGER_STEP_MS : 0
+                    cardIndex += 1
+                    return (
+                      <DeviceCard
+                        key={device.id}
+                        device={device}
+                        liveValue={liveValue}
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

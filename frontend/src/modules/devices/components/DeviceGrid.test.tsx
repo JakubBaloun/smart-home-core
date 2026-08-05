@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { DeviceGrid } from './DeviceGrid'
@@ -54,5 +55,18 @@ describe('DeviceGrid', () => {
     renderGrid([])
 
     expect(screen.getByText('No devices found.')).toBeInTheDocument()
+  })
+
+  it('is expanded by default and can be collapsed and re-expanded', async () => {
+    renderGrid([{ device: device({ id: 1, friendlyName: 'lamp', type: 'LIGHT' }) }])
+
+    expect(screen.getByText('Světla')).toBeInTheDocument()
+    expect(screen.getByText('Zařízení (1)')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Zařízení (1)'))
+    expect(screen.queryByText('Světla')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('Zařízení (1)'))
+    expect(screen.getByText('Světla')).toBeInTheDocument()
   })
 })
