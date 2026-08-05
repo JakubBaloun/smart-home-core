@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Area, AreaChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Area, AreaChart, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useChartPalette } from '@/app/theme'
 import type { TelemetryPoint } from '../types/telemetry'
 
@@ -86,6 +86,8 @@ export function TelemetryChart({
                 color: palette.tooltipInk,
               }}
             />
+            {/* Full-height background tint showing all limit zones across the whole plot height */}
+            <ReferenceArea y1={0} y2={100} fill={`url(#${gradientId})`} fillOpacity={0.12} stroke="none" />
             <Area
               type="monotone"
               dataKey="value"
@@ -163,6 +165,8 @@ export function TelemetryChart({
                 color: palette.tooltipInk,
               }}
             />
+            {/* Full-height background tint showing all temperature bands across the whole plot height */}
+            <ReferenceArea y1={14} y2={32} fill={`url(#${gradientId})`} fillOpacity={0.12} stroke="none" />
             <Area
               type="monotone"
               dataKey="value"
