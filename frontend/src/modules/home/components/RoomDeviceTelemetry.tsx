@@ -2,7 +2,7 @@ import { usePolling } from '@/hooks/usePolling'
 import { getLatestTelemetry } from '@/modules/devices/api/telemetry'
 import { ContactTimelineCard } from '@/modules/devices/components/ContactTimelineCard'
 import { TelemetryFieldChart } from '@/modules/devices/components/TelemetryFieldChart'
-import { sortFieldsForDisplay } from '@/modules/devices/lib/fieldOrder'
+import { filterDiagnosticFields, sortFieldsForDisplay } from '@/modules/devices/lib/fieldOrder'
 import type { Device } from '@/modules/devices/types/device'
 import type { TimeRange } from '@/modules/devices/types/telemetry'
 
@@ -17,7 +17,7 @@ export function RoomDeviceTelemetry({ device, range }: { device: Device; range: 
 
   const allFields = latest ? Object.keys(latest.values) : []
   const hasContact = allFields.includes('contact')
-  const chartFields = sortFieldsForDisplay(allFields.filter((f) => f !== 'contact'))
+  const chartFields = sortFieldsForDisplay(filterDiagnosticFields(allFields.filter((f) => f !== 'contact')))
 
   if (!hasContact && chartFields.length === 0) return null
 

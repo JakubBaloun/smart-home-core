@@ -20,7 +20,8 @@ CREATE TABLE device (
     available BOOLEAN NOT NULL DEFAULT FALSE,
     last_seen TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    state VARCHAR(10)
 );
 CREATE INDEX idx_device_ieee_address ON device(ieee_address);
 CREATE INDEX idx_device_type ON device(type);

@@ -75,6 +75,12 @@ class DeviceService:
         else:
             log.info("Device '%s' is now %s", friendly_name, "online" if available else "offline")
 
+    def update_state(self, ieee_address: str, state: str) -> None:
+        with transaction() as session:
+            updated = device_repository.update_state_by_ieee(ieee_address, state, session)
+        if updated == 0:
+            log.debug("State update for unknown device '%s' ignored", ieee_address)
+
     def get_all_devices(self) -> list[Device]:
         with read_session() as session:
             devices = device_repository.list_all(session)

@@ -8,6 +8,7 @@ export interface Device {
   vendor: string | null
   model: string | null
   available: boolean
+  state: 'ON' | 'OFF' | null
   lastSeen: string | null
   createdAt: string
   updatedAt: string

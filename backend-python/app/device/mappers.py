@@ -16,6 +16,7 @@ def to_response(device: Device) -> DeviceResponse:
         lastSeen=device.last_seen,
         createdAt=device.created_at,
         updatedAt=device.updated_at,
+        state=device.state,
     )
 
 

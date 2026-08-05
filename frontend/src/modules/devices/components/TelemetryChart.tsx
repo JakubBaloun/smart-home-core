@@ -1,22 +1,20 @@
 import { useId } from 'react'
 import { Area, AreaChart, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useChartPalette } from '@/app/theme'
-import type { TelemetryPoint } from '../types/telemetry'
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
+import { formatChartTime } from '../lib/chartTime'
+import type { TelemetryPoint, TimeRange } from '../types/telemetry'
 
 const TEMP_MARGIN = { top: 8, right: 4, left: 0, bottom: 0 }
 
 export function TelemetryChart({
   field,
   points,
+  range = '24h',
   heightPx = 256,
 }: {
   field: string
   points: TelemetryPoint[]
+  range?: TimeRange
   heightPx?: number
 }) {
   const palette = useChartPalette()
@@ -59,7 +57,7 @@ export function TelemetryChart({
             </defs>
             <XAxis
               dataKey="time"
-              tickFormatter={formatTime}
+              tickFormatter={(iso: string) => formatChartTime(iso, range)}
               stroke={palette.axis}
               fontSize={11}
               tickLine={false}
@@ -77,7 +75,7 @@ export function TelemetryChart({
               ticks={[0, 20, 40, 60, 80, 100]}
             />
             <Tooltip
-              labelFormatter={(label) => formatTime(label as string)}
+              labelFormatter={(label) => formatChartTime(label as string, range)}
               formatter={(value) => [`${Number(value).toFixed(1)} %`, 'Humidity']}
               contentStyle={{
                 background: palette.tooltipBg,
@@ -138,7 +136,7 @@ export function TelemetryChart({
             </defs>
             <XAxis
               dataKey="time"
-              tickFormatter={formatTime}
+              tickFormatter={(iso: string) => formatChartTime(iso, range)}
               stroke={palette.axis}
               fontSize={11}
               tickLine={false}
@@ -156,7 +154,7 @@ export function TelemetryChart({
               ticks={[14, 20, 26, 32]}
             />
             <Tooltip
-              labelFormatter={(label) => formatTime(label as string)}
+              labelFormatter={(label) => formatChartTime(label as string, range)}
               formatter={(value) => [`${Number(value).toFixed(1)} °C`, 'Temperature']}
               contentStyle={{
                 background: palette.tooltipBg,
@@ -187,10 +185,16 @@ export function TelemetryChart({
     <div style={{ height: heightPx }} className="w-full font-mono">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ left: 8 }}>
-          <XAxis dataKey="time" tickFormatter={formatTime} stroke={palette.axis} fontSize={12} />
+          <XAxis
+            dataKey="time"
+            tickFormatter={(iso: string) => formatChartTime(iso, range)}
+            stroke={palette.axis}
+            fontSize={12}
+            minTickGap={32}
+          />
           <YAxis stroke={palette.axis} fontSize={12} width={48} />
           <Tooltip
-            labelFormatter={(label) => formatTime(label as string)}
+            labelFormatter={(label) => formatChartTime(label as string, range)}
             contentStyle={{
               background: palette.tooltipBg,
               border: `1px solid ${palette.tooltipBorder}`,

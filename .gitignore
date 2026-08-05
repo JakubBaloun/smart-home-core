@@ -54,3 +54,6 @@ frontend/dist/
 
 # Brainstorming visual companion
 .superpowers/
+
+# Personal Codex workflow notes
+.codex/settings.local.json

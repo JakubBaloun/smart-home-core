@@ -18,6 +18,7 @@ function device(overrides: Record<string, unknown> = {}) {
     vendor: null,
     model: null,
     available: true,
+    state: null,
     lastSeen: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -93,8 +94,9 @@ describe('RoomDetailPage', () => {
 
     renderRoom('office')
 
-    expect(await screen.findByText('Office lamp')).toBeInTheDocument()
+    expect((await screen.findAllByText('Office lamp')).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('24h')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('zavřeno')).toBeInTheDocument())
+    expect(screen.getByText('Vypnuto')).toBeInTheDocument()
   })
 })

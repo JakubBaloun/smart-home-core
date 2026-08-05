@@ -60,6 +60,14 @@ def test_get_device_by_id(client, seeded_device_id):
     assert body["updatedAt"] is not None
 
 
+def test_get_device_by_id_includes_null_state_by_default(client, seeded_device_id):
+    response = client.get(f"/api/devices/{seeded_device_id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert "state" in body
+    assert body["state"] is None
+
+
 def test_get_device_not_found(client):
     response = client.get("/api/devices/999999")
     assert response.status_code == 404

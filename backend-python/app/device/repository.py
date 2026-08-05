@@ -93,6 +93,14 @@ class DeviceRepository:
         )
         return result.rowcount
 
+    def update_state_by_ieee(self, ieee_address: str, state: str, session: Session) -> int:
+        result = session.execute(
+            update(Device)
+            .where(Device.ieee_address == ieee_address)
+            .values(state=state, updated_at=datetime.now(timezone.utc))
+        )
+        return result.rowcount
+
     @staticmethod
     def _availability_values(available: bool) -> dict:
         now = datetime.now(timezone.utc)

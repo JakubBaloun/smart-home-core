@@ -54,15 +54,22 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
         log.warning("Telemetry payload from %s is not a JSON object, skipping", device_name)
         return
 
-    fields = {k: v for k, v in parsed.items() if k in KNOWN_FIELDS}
-    if not fields:
-        log.debug("No known telemetry fields in message from %s, skipping", device_name)
-        return
-
     # The topic carries a mutable label; the InfluxDB tag must be the immutable
     # identity, or a rename orphans every point written before it.
     identity = _identity_for(device_name)
     tag = identity.ieee_address if identity else device_name
+
+    state = parsed.get("state")
+    if isinstance(state, str) and identity is not None:
+        try:
+            device_service.update_state(identity.ieee_address, state)
+        except Exception as e:
+            log.error("Failed to update state for %s: %s", device_name, e)
+
+    fields = {k: v for k, v in parsed.items() if k in KNOWN_FIELDS}
+    if not fields:
+        log.debug("No known telemetry fields in message from %s, skipping", device_name)
+        return
     # Rules are configured by device name, so the event keeps carrying a name —
     # the registry's, which is the one the user sees and configures against.
     rule_name = identity.friendly_name if identity else device_name

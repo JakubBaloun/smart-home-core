@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sortFieldsForDisplay } from './fieldOrder'
+import { filterDiagnosticFields, sortFieldsForDisplay } from './fieldOrder'
 
 describe('sortFieldsForDisplay', () => {
   it('leaves non-diagnostic fields in their original order', () => {
@@ -27,3 +27,21 @@ describe('sortFieldsForDisplay', () => {
     expect(sortFieldsForDisplay([])).toEqual([])
   })
 })
+
+describe('filterDiagnosticFields', () => {
+  it('removes battery and linkquality, preserving order of the rest', () => {
+    expect(filterDiagnosticFields(['linkquality', 'temperature', 'battery', 'humidity'])).toEqual([
+      'temperature',
+      'humidity',
+    ])
+  })
+
+  it('returns an empty list when only diagnostic fields are present', () => {
+    expect(filterDiagnosticFields(['battery', 'linkquality'])).toEqual([])
+  })
+
+  it('handles an empty list', () => {
+    expect(filterDiagnosticFields([])).toEqual([])
+  })
+})
+

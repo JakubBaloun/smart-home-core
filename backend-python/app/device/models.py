@@ -32,6 +32,7 @@ class Device(Base):
     last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    state: Mapped[str | None] = mapped_column(String(10))
 
 
 class DeviceAlias(Base):
