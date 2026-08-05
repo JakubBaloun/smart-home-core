@@ -11,7 +11,7 @@
  * See frontend/DESIGN.md.
  */
 
-[data-theme='dark'] {
+[data-theme='graphite'] {
   color-scheme: dark;
 
   --surface-sunken: #0c0b0a;
@@ -35,6 +35,114 @@
   --warm: #e0a458;
   --danger: #dd5b44;
   --extreme: #a3291f;
+}
+
+/*
+ * Obsidian Aurora — cold, high-contrast, glow-driven.
+ * WCAG AA measured (sRGB relative-luminance formula):
+ *   ink on surface: 17.39:1 | ink on surface-raised: 16.12:1 | ink-muted on surface: 8.89:1
+ *   accent-ink on accent: 4.54:1 | accent on surface: 4.54:1
+ *   danger on surface: 6.15:1 | extreme on surface: 3.49:1
+ *   ok on surface: 11.33:1 | cool on surface: 10.93:1 | warm on surface: 9.75:1
+ * All pairings pass on the first try with the brief's starting values — no lightness tuning
+ * needed.
+ */
+[data-theme='obsidian-aurora'] {
+  color-scheme: dark;
+
+  --surface-sunken: #06060b;
+  --surface: #0a0a0f; /* ink: 17.39:1, accent: 4.54:1, danger: 6.15:1, extreme: 3.49:1, ok: 11.33:1, cool: 10.93:1, warm: 9.75:1 */
+  --surface-raised: #14141c; /* ink: 16.12:1 */
+  --overlay: #1c1c28;
+
+  --line: #262636;
+  --line-strong: #3d3d55;
+
+  --ink: #f0f0f5;
+  --ink-muted: #aaadc0; /* on surface: 8.89:1 */
+  --ink-faint: #6f7285;
+
+  --accent: #7c5cff; /* accent-ink on accent: 4.54:1 */
+  --accent-strong: #9a80ff;
+  --accent-ink: #0a0a0f;
+
+  --ok: #4ade80;
+  --cool: #22d3ee;
+  --warm: #f5a623;
+  --danger: #ff4d6d;
+  --extreme: #c9184a;
+}
+
+/*
+ * Amber Forge — warm, industrial, richer graphite.
+ * WCAG AA measured:
+ *   ink on surface: 16.52:1 | ink on surface-raised: 15.22:1 | ink-muted on surface: 8.94:1
+ *   accent-ink on accent: 8.25:1 | accent on surface: 8.25:1
+ *   danger on surface: 4.75:1 | extreme on surface: 3.12:1
+ *   ok on surface: 8.99:1 | cool on surface: 8.08:1 | warm on surface: 9.66:1
+ * --extreme tuned from the brief's #9c1c1c (2.39:1, failed 3:1) to #bc2222 by raising HSL
+ * lightness only (hue/saturation unchanged) until it cleared 3:1 with margin.
+ */
+[data-theme='amber-forge'] {
+  color-scheme: dark;
+
+  --surface-sunken: #0a0806;
+  --surface: #110d09; /* ink: 16.52:1, accent: 8.25:1, danger: 4.75:1, extreme: 3.12:1, ok: 8.99:1, cool: 8.08:1, warm: 9.66:1 */
+  --surface-raised: #1e1610; /* ink: 15.22:1 */
+  --overlay: #2a1f16;
+
+  --line: #3a2b1e;
+  --line-strong: #5c4530;
+
+  --ink: #f5ecdd;
+  --ink-muted: #c0ae91; /* on surface: 8.94:1 */
+  --ink-faint: #85755c;
+
+  --accent: #ff8a3d; /* accent-ink on accent: 8.25:1 */
+  --accent-strong: #ffb347;
+  --accent-ink: #110d09;
+
+  --ok: #8fbc8f;
+  --cool: #5eb3c9;
+  --warm: #f0a94a;
+  --danger: #e0483a;
+  --extreme: #bc2222; /* on surface: 3.12:1 (tuned from #9c1c1c, was 2.39:1) */
+}
+
+/*
+ * Midnight Chrome — cold steel, glassy, subtle grain.
+ * WCAG AA measured:
+ *   ink on surface: 16.16:1 | ink on surface-raised: 14.67:1 | ink-muted on surface: 8.69:1
+ *   accent-ink on accent: 7.21:1 | accent on surface: 6.94:1
+ *   danger on surface: 5.29:1 | extreme on surface: 3.14:1
+ *   ok on surface: 8.21:1 | cool on surface: 9.04:1 | warm on surface: 8.78:1
+ * --extreme tuned from the brief's #b31e2f (2.87:1, failed 3:1) to #be2032 by raising HSL
+ * lightness only (hue/saturation unchanged) until it cleared 3:1 with margin.
+ */
+[data-theme='midnight-chrome'] {
+  color-scheme: dark;
+
+  --surface-sunken: #08090c;
+  --surface: #0d0f14; /* ink: 16.16:1, accent: 6.94:1, danger: 5.29:1, extreme: 3.14:1, ok: 8.21:1, cool: 9.04:1, warm: 8.78:1 */
+  --surface-raised: #171a21; /* ink: 14.67:1 */
+  --overlay: #20242d;
+
+  --line: #2a2f3a;
+  --line-strong: #414857;
+
+  --ink: #e8ecf1;
+  --ink-muted: #a8afbc; /* on surface: 8.69:1 */
+  --ink-faint: #6c7280;
+
+  --accent: #4f9dff; /* accent-ink on accent: 7.21:1 */
+  --accent-strong: #7ab3ff;
+  --accent-ink: #08090c;
+
+  --ok: #39c07a;
+  --cool: #56c0d6;
+  --warm: #e0a458;
+  --danger: #ef4a5a;
+  --extreme: #be2032; /* on surface: 3.14:1 (tuned from #b31e2f, was 2.87:1) */
 }
 
 [data-theme='light'] {
@@ -138,4 +246,85 @@ body {
 
 *::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * Opt-in visual-effect utilities — additive, per-variant visual signatures.
+ * Each utility is a flat/no-op default so it is harmless under Graphite, Light and any
+ * variant that doesn't opt in; the per-[data-theme] override supplies the actual effect.
+ * Components only ever add the class name — no hex, no theme checks, in .tsx. See
+ * frontend/DESIGN.md.
+ */
+
+/* Obsidian Aurora: cold radial surface gradient behind the whole app. */
+[data-theme='obsidian-aurora'] body {
+  background: radial-gradient(ellipse at top, var(--surface-raised), var(--surface-sunken) 70%, var(--surface));
+}
+
+/* Glow utility: no-op everywhere except Obsidian Aurora, where it halos the accent color. */
+.glow-accent {
+  box-shadow: 0 0 0 0 transparent;
+}
+
+[data-theme='obsidian-aurora'] .glow-accent {
+  box-shadow: 0 0 24px -4px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+/* Glass utility: flat overlay fill everywhere except Midnight Chrome, where it blurs. */
+.glass {
+  background: var(--overlay);
+}
+
+[data-theme='midnight-chrome'] .glass {
+  backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--overlay) 78%, transparent);
+}
+
+/* Chrome inset border: subtle top highlight, Midnight Chrome only. */
+[data-theme='midnight-chrome'] .chrome-edge {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+/* Grain texture: faint tiled noise over the whole app, Midnight Chrome only. */
+[data-theme='midnight-chrome'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: url('/assets/noise.svg');
+  opacity: 0.04;
+}
+
+/*
+ * Theme swatch utilities — two-tone preview chips for the theme picker (Task 3).
+ * CSS-only so the picker component never references a hex literal directly.
+ */
+.theme-swatch-light,
+.theme-swatch-graphite,
+.theme-swatch-obsidian-aurora,
+.theme-swatch-amber-forge,
+.theme-swatch-midnight-chrome {
+  display: inline-block;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.theme-swatch-light {
+  background: linear-gradient(to right, #eeeeee 50%, #1d4ed8 50%);
+}
+
+.theme-swatch-graphite {
+  background: linear-gradient(to right, #141210 50%, #2563eb 50%);
+}
+
+.theme-swatch-obsidian-aurora {
+  background: linear-gradient(to right, #0a0a0f 50%, #7c5cff 50%);
+}
+
+.theme-swatch-amber-forge {
+  background: linear-gradient(to right, #110d09 50%, #ff8a3d 50%);
+}
+
+.theme-swatch-midnight-chrome {
+  background: linear-gradient(to right, #0d0f14 50%, #4f9dff 50%);
 }
