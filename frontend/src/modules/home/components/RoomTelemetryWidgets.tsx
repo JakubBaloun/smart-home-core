@@ -1,179 +1,177 @@
-import { useRef, useState } from 'react'
-import { Responsive, WidthProvider } from 'react-grid-layout/legacy'
-import type { ResponsiveLayouts } from 'react-grid-layout'
-import 'react-grid-layout/css/styles.css'
-import 'react-resizable/css/styles.css'
+import type { ComponentType } from 'react'
+import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import { usePolling } from '@/hooks/usePolling'
 import { sendCommand } from '@/modules/devices/api/devices'
 import { getLatestTelemetry } from '@/modules/devices/api/telemetry'
-import { filterDiagnosticFields } from '@/modules/devices/lib/fieldOrder'
+import { TelemetryFieldChart } from '@/modules/devices/components/TelemetryFieldChart'
 import type { Device } from '@/modules/devices/types/device'
 import type { TimeRange } from '@/modules/devices/types/telemetry'
 import { Button } from '@/ui/Button'
-import { IconCheck, IconPencil, IconRefreshCcw } from '@/ui/icons'
-import { clearRoomTelemetryLayout, loadRoomTelemetryLayout, saveRoomTelemetryLayout } from '../lib/roomLayoutStorage'
-import { RoomWidget, type RoomWidgetProps } from './RoomWidget'
+import { LiveDot } from '@/ui/LiveDot'
+import { IconBulb, IconCube, IconPlug, IconSensor, IconSwitch } from '@/ui/icons'
 
 const REFRESH_INTERVAL_MS = 15_000
-const GRID_BREAKPOINTS = { lg: 1024, md: 768, sm: 640 }
-const GRID_COLS = { lg: 10, md: 8, sm: 6 }
-const GRID_ROW_HEIGHT = 80
-const DEFAULT_WIDGET_COLS = 5
-const DEFAULT_WIDGET_UNITS = 2
-const GRAPH_MIN_W = 4
-const GRAPH_MIN_H = 3
+const CONTROLLABLE_TYPES = new Set<Device['type']>(['LIGHT', 'SWITCH', 'PLUG'])
 
-const ResponsiveGridLayout = WidthProvider(Responsive)
-
-interface FieldEntry {
-  key: string
-  field: string
-  deviceKey: string
-  label: string
-  value: number
+const TYPE_ICON: Record<Device['type'], ComponentType<{ className?: string }>> = {
+  LIGHT: IconBulb,
+  SENSOR: IconSensor,
+  SWITCH: IconSwitch,
+  PLUG: IconPlug,
+  OTHER: IconCube,
 }
 
-interface WidgetEntry {
-  key: string
-  props: RoomWidgetProps
+interface SensorValues {
+  temperature?: number
+  humidity?: number
+  contact?: number
 }
 
-export function shouldShowWidgetGraph(layout: { w: number; h: number } | undefined): boolean {
-  return layout !== undefined && layout.w >= GRAPH_MIN_W && layout.h >= GRAPH_MIN_H
+interface RoomDeviceSummary {
+  device: Device
+  values?: SensorValues
 }
 
-async function getRoomFieldEntries(devices: Device[]): Promise<FieldEntry[]> {
-  const results = await Promise.all(
-    devices.map(async (device): Promise<FieldEntry[]> => {
+async function getRoomDeviceSummaries(devices: Device[]): Promise<RoomDeviceSummary[]> {
+  return Promise.all(
+    devices.map(async (device) => {
+      if (device.type !== 'SENSOR') return { device }
+
       try {
         const latest = await getLatestTelemetry(device.ieeeAddress)
-        return filterDiagnosticFields(Object.keys(latest.values)).flatMap((field) => {
-          const value = latest.values[field]
-          return typeof value === 'number'
-            ? [{ key: `${device.ieeeAddress}:${field}`, field, deviceKey: device.ieeeAddress, label: device.friendlyName, value }]
-            : []
-        })
+        const values: SensorValues = {}
+        if (typeof latest.values.contact === 'number') values.contact = latest.values.contact
+        if (typeof latest.values.temperature === 'number') values.temperature = latest.values.temperature
+        if (typeof latest.values.humidity === 'number') values.humidity = latest.values.humidity
+        return { device, values }
       } catch {
-        return []
+        return { device }
       }
     }),
   )
-  return results.flat()
 }
 
-export function RoomTelemetryWidgets({ roomId, devices, range }: { roomId: string; devices: Device[]; range: TimeRange }) {
-  const [editing, setEditing] = useState(false)
-  const [layouts, setLayouts] = useState<ResponsiveLayouts | null>(() => loadRoomTelemetryLayout(roomId))
+export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devices: Device[]; range: TimeRange }) {
   const [togglingId, setTogglingId] = useState<number | null>(null)
-  const suppressNextSaveRef = useRef(false)
-  const controllable = devices.filter((device) => ['LIGHT', 'SWITCH', 'PLUG'].includes(device.type))
   const deviceKeys = devices.map((device) => device.ieeeAddress).join(',')
-  const { data: fieldEntries } = usePolling(() => getRoomFieldEntries(devices), REFRESH_INTERVAL_MS, [deviceKeys])
+  const { data: summaries } = usePolling(
+    () => getRoomDeviceSummaries(devices),
+    REFRESH_INTERVAL_MS,
+    [deviceKeys],
+  )
 
   const handleToggle = async (device: Device) => {
     setTogglingId(device.id)
     try {
-      await sendCommand(device.id, { command: 'setState', payload: { state: device.state === 'ON' ? 'OFF' : 'ON' } })
+      await sendCommand(device.id, {
+        command: 'setState',
+        payload: { state: device.state === 'ON' ? 'OFF' : 'ON' },
+      })
     } finally {
       setTogglingId(null)
     }
   }
 
-  const handleLayoutChange = (_current: unknown, allLayouts: ResponsiveLayouts) => {
-    setLayouts(allLayouts)
-    if (!editing || suppressNextSaveRef.current) {
-      suppressNextSaveRef.current = false
-      return
-    }
-    saveRoomTelemetryLayout(roomId, allLayouts)
+  const visibleSummaries = (summaries ?? []).filter(({ device, values }) =>
+    CONTROLLABLE_TYPES.has(device.type) || values?.contact !== undefined || values?.temperature !== undefined || values?.humidity !== undefined,
+  )
+
+  if (summaries && visibleSummaries.length === 0) {
+    return <p className="text-ink-muted">Žádná data k zobrazení.</p>
   }
-
-  const handleReset = () => {
-    clearRoomTelemetryLayout(roomId)
-    suppressNextSaveRef.current = true
-    setLayouts(null)
-  }
-
-  const widgets: WidgetEntry[] = [
-    ...(fieldEntries ?? []).map((entry): WidgetEntry => ({
-      key: entry.key,
-      props:
-        entry.field === 'contact'
-          ? { kind: 'contact', deviceKey: entry.deviceKey, label: entry.label, range, showGraph: false, value: entry.value }
-          : {
-              kind: 'metric',
-              field: entry.field,
-              deviceKey: entry.deviceKey,
-              label: entry.label,
-              range,
-              showGraph: false,
-              value: entry.value,
-            },
-    })),
-    ...controllable.map((device): WidgetEntry => ({
-      key: `${device.ieeeAddress}:state`,
-      props: {
-        kind: 'state',
-        label: device.friendlyName,
-        value: device.state ?? 'OFF',
-        onToggle: () => handleToggle(device),
-        toggling: togglingId === device.id,
-      },
-    })),
-  ]
-
-  if (widgets.length === 0) return <p className="text-ink-muted">Žádná data k zobrazení.</p>
 
   return (
-    <div>
-      <div className="mb-4 flex justify-end gap-2">
-        {editing && (
-          <Button variant="ghost" size="sm" onClick={handleReset}>
-            <IconRefreshCcw className="size-4" />
-            Resetovat rozložení
-          </Button>
-        )}
-        <Button variant="neutral" size="sm" onClick={() => setEditing((value) => !value)}>
-          {editing ? <IconCheck className="size-4" /> : <IconPencil className="size-4" />}
-          {editing ? 'Hotovo' : 'Upravit rozložení'}
-        </Button>
-      </div>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {visibleSummaries.map(({ device, values }) => {
+        if (CONTROLLABLE_TYPES.has(device.type)) {
+          return (
+            <ControlCard
+              key={device.id}
+              device={device}
+              toggling={togglingId === device.id}
+              onToggle={() => handleToggle(device)}
+            />
+          )
+        }
 
-      <ResponsiveGridLayout
-        className="layout"
-        breakpoints={GRID_BREAKPOINTS}
-        cols={GRID_COLS}
-        rowHeight={GRID_ROW_HEIGHT}
-        layouts={layouts ?? undefined}
-        isDraggable={editing}
-        isResizable={editing}
-        onLayoutChange={handleLayoutChange}
-      >
-        {widgets.map(({ key, props }, index) => (
-          <div
-            key={key}
-            data-grid={
-              layouts
-                ? undefined
-                : {
-                    x: (index % DEFAULT_WIDGET_COLS) * DEFAULT_WIDGET_UNITS,
-                    y: Math.floor(index / DEFAULT_WIDGET_COLS) * DEFAULT_WIDGET_UNITS,
-                    w: DEFAULT_WIDGET_UNITS,
-                    h: DEFAULT_WIDGET_UNITS,
-                  }
-            }
-          >
-            <SizedRoomWidget widgetKey={key} layouts={layouts} {...props} />
-          </div>
-        ))}
-      </ResponsiveGridLayout>
+        if (values?.contact !== undefined) return <ContactCard key={device.id} device={device} contact={values.contact} />
+
+        return <ClimateCard key={device.id} device={device} values={values ?? {}} range={range} />
+      })}
     </div>
   )
 }
 
-function SizedRoomWidget({ widgetKey, layouts, ...props }: RoomWidgetProps & { widgetKey: string; layouts: ResponsiveLayouts | null }) {
-  if (props.kind === 'state') return <RoomWidget {...props} />
+function CardHeader({ device }: { device: Device }) {
+  const Icon = TYPE_ICON[device.type]
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <Link to={`/device/${device.id}`} className="flex min-w-0 items-center gap-3 hover:text-accent">
+        <Icon className="size-5 shrink-0 text-ink-muted" />
+        <h3 className="truncate text-base font-medium text-ink">{device.friendlyName}</h3>
+      </Link>
+      <span title={device.available ? 'Online' : 'Offline'}>
+        <LiveDot online={device.available} />
+      </span>
+    </div>
+  )
+}
 
-  const layout = layouts?.lg?.find((item) => item.i === widgetKey)
-  return <RoomWidget {...props} showGraph={shouldShowWidgetGraph(layout)} />
+function ControlCard({ device, toggling, onToggle }: { device: Device; toggling: boolean; onToggle: () => void }) {
+  const isOn = device.state === 'ON'
+  return (
+    <section className="flex min-h-48 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5">
+      <CardHeader device={device} />
+      <div className="mt-8">
+        <p className={`font-mono text-3xl font-semibold ${isOn ? 'text-warm' : 'text-ink-muted'}`}>
+          {isOn ? 'Zapnuto' : 'Vypnuto'}
+        </p>
+        <p className="mt-1 text-sm text-ink-muted">{device.state === null ? 'Stav se načte po další zprávě zařízení.' : 'Aktuální stav zařízení'}</p>
+      </div>
+      <Button variant={isOn ? 'neutral' : 'primary'} className="mt-6 w-full" disabled={toggling} onClick={onToggle}>
+        {isOn ? 'Vypnout' : 'Zapnout'}
+      </Button>
+    </section>
+  )
+}
+
+function ContactCard({ device, contact }: { device: Device; contact: number }) {
+  const isClosed = contact === 1
+  return (
+    <section className="flex min-h-48 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5">
+      <CardHeader device={device} />
+      <div className="mt-8">
+        <p className={`font-mono text-3xl font-semibold ${isClosed ? 'text-ok' : 'text-danger'}`}>
+          {isClosed ? 'Zavřeno' : 'Otevřeno'}
+        </p>
+        <p className="mt-1 text-sm text-ink-muted">Stav dveří nebo okna</p>
+      </div>
+    </section>
+  )
+}
+
+function ClimateCard({ device, values, range }: { device: Device; values: SensorValues; range: TimeRange }) {
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const hasTemperature = values.temperature !== undefined
+  const hasHumidity = values.humidity !== undefined
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface-raised p-5">
+      <CardHeader device={device} />
+      <div className="mt-8 flex gap-8">
+        {hasTemperature && <p className="font-mono text-3xl font-semibold text-warm">{values.temperature?.toFixed(1)}°C</p>}
+        {hasHumidity && <p className="font-mono text-3xl font-semibold text-cool">{Math.round(values.humidity ?? 0)}%</p>}
+      </div>
+      <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
+        {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
+      </Button>
+      {historyOpen && (
+        <div className="mt-4 grid gap-4">
+          {hasTemperature && <TelemetryFieldChart deviceKey={device.ieeeAddress} field="temperature" range={range} />}
+          {hasHumidity && <TelemetryFieldChart deviceKey={device.ieeeAddress} field="humidity" range={range} />}
+        </div>
+      )}
+    </section>
+  )
 }

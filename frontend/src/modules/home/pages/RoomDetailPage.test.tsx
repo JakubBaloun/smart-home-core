@@ -96,7 +96,7 @@ describe('RoomDetailPage', () => {
 
     expect((await screen.findAllByText('Office lamp')).length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('24h')).toBeInTheDocument()
-    await waitFor(() => expect(screen.getByText('zavřeno')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Zavřeno')).toBeInTheDocument())
     expect(screen.getByText('Vypnuto')).toBeInTheDocument()
   })
 })

@@ -1,14 +1,15 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import type { Device } from '@/modules/devices/types/device'
-import { RoomTelemetryWidgets, shouldShowWidgetGraph } from './RoomTelemetryWidgets'
+import { RoomTelemetryWidgets } from './RoomTelemetryWidgets'
 
 function device(overrides: Partial<Device> = {}): Device {
   return {
     id: 1,
     ieeeAddress: '0xaaa',
-    friendlyName: 'Office temp',
+    friendlyName: 'Bedroom temp',
     type: 'SENSOR',
     vendor: null,
     model: null,
@@ -25,55 +26,54 @@ function jsonResponse(body: unknown) {
   return new Response(JSON.stringify(body), { status: 200 })
 }
 
+function renderWidgets(devices: Device[]) {
+  return render(
+    <MemoryRouter>
+      <RoomTelemetryWidgets roomId="office" devices={devices} range="24h" />
+    </MemoryRouter>,
+  )
+}
+
 describe('RoomTelemetryWidgets', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn())
-    localStorage.clear()
-  })
+  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  afterEach(() => vi.unstubAllGlobals())
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-    localStorage.clear()
-  })
+  it('shows a climate device as one card and omits diagnostic values', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 48, voltage: 14, battery: 90 }, lastUpdated: null }),
+    )
 
-  it('renders a value widget per non-diagnostic telemetry field', async () => {
-    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
-      if (String(input) === '/api/telemetry/0xaaa/latest') {
-        return Promise.resolve(jsonResponse({ deviceName: 'Office temp', values: { temperature: 21.5, battery: 90 }, lastUpdated: null }))
-      }
-      return Promise.resolve(new Response('not found', { status: 404 }))
-    })
-
-    render(<RoomTelemetryWidgets roomId="office" devices={[device()]} range="24h" />)
+    renderWidgets([device()])
 
     expect(await screen.findByText('21.5°C')).toBeInTheDocument()
+    expect(screen.getByText('48%')).toBeInTheDocument()
+    expect(screen.queryByText('14')).not.toBeInTheDocument()
     expect(screen.queryByText('90')).not.toBeInTheDocument()
   })
 
-  it('shows a graph only once both layout size thresholds are reached', () => {
-    expect(shouldShowWidgetGraph({ w: 3, h: 3 })).toBe(false)
-    expect(shouldShowWidgetGraph({ w: 4, h: 2 })).toBe(false)
-    expect(shouldShowWidgetGraph({ w: 4, h: 3 })).toBe(true)
+  it('gives a contact sensor only its open/closed state', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ deviceName: 'Dveře', values: { contact: 0, voltage: 14 }, lastUpdated: null }),
+    )
+
+    renderWidgets([device({ friendlyName: 'Dveře' })])
+
+    expect(await screen.findByText('Otevřeno')).toBeInTheDocument()
+    expect(screen.queryByText('14')).not.toBeInTheDocument()
+    expect(screen.queryByText('Zobrazit historii')).not.toBeInTheDocument()
   })
 
-  it('renders a state widget and sends its toggle command', async () => {
+  it('renders a controllable device as a single on/off card and sends its command', async () => {
     vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
-      const url = String(input)
-      if (url === '/api/telemetry/0xbbb/latest') return Promise.resolve(new Response('not found', { status: 404 }))
-      if (url === '/api/devices/2/command') return Promise.resolve(new Response(null, { status: 202 }))
+      if (String(input) === '/api/devices/2/command') return Promise.resolve(new Response(null, { status: 202 }))
       return Promise.resolve(new Response('not found', { status: 404 }))
     })
 
-    render(<RoomTelemetryWidgets roomId="office" devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Office lamp', type: 'LIGHT', state: 'OFF' })]} range="24h" />)
+    renderWidgets([device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Žárovka', type: 'LIGHT', state: 'ON' })])
 
-    await userEvent.click(await screen.findByText('Vypnuto'))
+    expect(await screen.findByText('Zapnuto')).toBeInTheDocument()
+    expect(screen.getByText('Vypnout')).toBeInTheDocument()
+    await userEvent.click(screen.getByText('Vypnout'))
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/devices/2/command', expect.objectContaining({ method: 'POST' })))
-  })
-
-  it('shows a fallback message when there are no telemetry or controllable devices', async () => {
-    vi.mocked(fetch).mockResolvedValue(new Response('not found', { status: 404 }))
-    render(<RoomTelemetryWidgets roomId="office" devices={[device({ type: 'OTHER' })]} range="24h" />)
-
-    expect(await screen.findByText('Žádná data k zobrazení.')).toBeInTheDocument()
   })
 })
