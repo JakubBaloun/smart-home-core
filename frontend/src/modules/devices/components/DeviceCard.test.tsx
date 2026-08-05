@@ -13,6 +13,8 @@ const baseDevice: Device = {
   model: 'TRADFRI',
   available: true,
   state: null,
+  brightness: null,
+  colorTemp: null,
   lastSeen: new Date().toISOString(),
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),

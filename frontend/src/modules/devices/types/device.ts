@@ -9,6 +9,8 @@ export interface Device {
   model: string | null
   available: boolean
   state: 'ON' | 'OFF' | null
+  brightness: number | null
+  colorTemp: number | null
   lastSeen: string | null
   createdAt: string
   updatedAt: string

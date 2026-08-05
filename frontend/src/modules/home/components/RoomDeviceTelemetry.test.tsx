@@ -13,6 +13,8 @@ function device(overrides: Partial<Device> = {}): Device {
     model: null,
     available: true,
     state: null,
+    brightness: null,
+    colorTemp: null,
     lastSeen: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

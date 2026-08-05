@@ -19,6 +19,8 @@ function device(overrides: Record<string, unknown> = {}) {
     model: null,
     available: true,
     state: null,
+    brightness: null,
+    colorTemp: null,
     lastSeen: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
