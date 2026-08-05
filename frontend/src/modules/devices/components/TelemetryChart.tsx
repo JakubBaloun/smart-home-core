@@ -8,14 +8,16 @@ function formatTime(iso: string) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+const TEMP_MARGIN = { top: 8, right: 4, left: 0, bottom: 0 }
+
 export function TelemetryChart({
   field,
   points,
-  heightClassName = 'h-64',
+  heightPx = 256,
 }: {
   field: string
   points: TelemetryPoint[]
-  heightClassName?: string
+  heightPx?: number
 }) {
   const palette = useChartPalette()
   const gradientId = useId()
@@ -32,14 +34,17 @@ export function TelemetryChart({
   // comparable across visits. Assumes all sensors are indoor; revisit if an outdoor
   // sensor is ever added.
   if (isTemperature) {
+    // Gradient is pinned to the fixed [14, 32] domain (in plot pixels, not the data's own
+    // bounding box) so color always reflects the actual temperature, not just today's range.
+    const plotHeight = heightPx - TEMP_MARGIN.top - TEMP_MARGIN.bottom
     return (
-      <div className={`${heightClassName} w-full font-mono`}>
+      <div style={{ height: heightPx }} className="w-full font-mono">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+          <AreaChart data={data} margin={TEMP_MARGIN}>
             <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={palette.warm} stopOpacity={0.45} />
-                <stop offset="95%" stopColor={palette.warm} stopOpacity={0} />
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={plotHeight} gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor={palette.warm} />
+                <stop offset="100%" stopColor={palette.series} />
               </linearGradient>
             </defs>
             <XAxis
@@ -59,6 +64,7 @@ export function TelemetryChart({
               width={44}
               tickFormatter={(v: number) => `${v}°`}
               domain={[14, 32]}
+              ticks={[14, 20, 26, 32]}
             />
             <Tooltip
               labelFormatter={(label) => formatTime(label as string)}
@@ -73,9 +79,10 @@ export function TelemetryChart({
             <Area
               type="monotone"
               dataKey="value"
-              stroke={palette.warm}
+              stroke={`url(#${gradientId})`}
               strokeWidth={2.5}
               fill={`url(#${gradientId})`}
+              fillOpacity={0.35}
               dot={false}
               activeDot={{ r: 4 }}
             />
@@ -86,7 +93,7 @@ export function TelemetryChart({
   }
 
   return (
-    <div className={`${heightClassName} w-full font-mono`}>
+    <div style={{ height: heightPx }} className="w-full font-mono">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ left: 8 }}>
           <XAxis dataKey="time" tickFormatter={formatTime} stroke={palette.axis} fontSize={12} />

@@ -74,7 +74,7 @@ export function TemperatureCard({
             </button>
           ))}
         </div>
-        <TelemetryChart field="temperature" points={history?.points ?? []} heightClassName="h-48" />
+        <TelemetryChart field="temperature" points={history?.points ?? []} heightPx={192} />
       </div>
     </div>
   )
