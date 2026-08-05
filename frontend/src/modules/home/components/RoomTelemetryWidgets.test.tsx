@@ -67,7 +67,7 @@ describe('RoomTelemetryWidgets', () => {
   })
   afterEach(() => vi.unstubAllGlobals())
 
-  it('shows a climate device as one card and omits diagnostic values', async () => {
+  it('shows a climate device as separate temperature and humidity cards and omits diagnostic values', async () => {
     vi.mocked(fetch).mockResolvedValue(
       jsonResponse({ deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 48, voltage: 14, battery: 90 }, lastUpdated: null }),
     )
@@ -76,8 +76,25 @@ describe('RoomTelemetryWidgets', () => {
 
     expect(await screen.findByText('21.5°C')).toBeInTheDocument()
     expect(screen.getByText('48%')).toBeInTheDocument()
+    expect(screen.getAllByText('Bedroom temp')).toHaveLength(2)
     expect(screen.queryByText('14')).not.toBeInTheDocument()
     expect(screen.queryByText('90')).not.toBeInTheDocument()
+  })
+
+  it('toggles temperature and humidity history independently', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ deviceName: 'Bedroom temp', values: { temperature: 21.5, humidity: 48 }, lastUpdated: null }),
+    )
+
+    renderWidgets([device()])
+
+    expect(await screen.findByText('21.5°C')).toBeInTheDocument()
+    const toggles = screen.getAllByText('Zobrazit historii')
+    expect(toggles).toHaveLength(2)
+
+    await userEvent.click(toggles[0])
+    expect(screen.getByText('Skrýt historii')).toBeInTheDocument()
+    expect(screen.getAllByText('Zobrazit historii')).toHaveLength(1)
   })
 
   it('gives a contact sensor only its open/closed state', async () => {

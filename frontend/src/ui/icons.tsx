@@ -146,6 +146,15 @@ export function IconThermometer(props: IconProps) {
   )
 }
 
+export function IconDroplet(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M12 3.5c2.8 3.4 5.5 7.2 5.5 10.3a5.5 5.5 0 1 1-11 0c0-3.1 2.7-6.9 5.5-10.3z" />
+      <path d="M9.2 15.3a2.8 2.8 0 0 0 2.8 2.8" />
+    </Icon>
+  )
+}
+
 export function IconChevronLeft(props: IconProps) {
   return (
     <Icon {...props}>

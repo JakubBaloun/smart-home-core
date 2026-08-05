@@ -10,7 +10,7 @@ import type { Device } from '@/modules/devices/types/device'
 import type { TimeRange } from '@/modules/devices/types/telemetry'
 import { Button } from '@/ui/Button'
 import { LiveDot } from '@/ui/LiveDot'
-import { IconBulb, IconCube, IconPlug, IconSensor, IconSwitch } from '@/ui/icons'
+import { IconBulb, IconCube, IconDroplet, IconPlug, IconSensor, IconSwitch, IconThermometer } from '@/ui/icons'
 
 const REFRESH_INTERVAL_MS = 15_000
 const CONTROLLABLE_TYPES = new Set<Device['type']>(['LIGHT', 'SWITCH', 'PLUG'])
@@ -117,7 +117,7 @@ export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devic
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
       {visibleSummaries.map(({ device, values }) => {
         if (CONTROLLABLE_TYPES.has(device.type)) {
           const state = optimisticStates[device.id] ?? reportedStates[device.ieeeAddress] ?? device.state
@@ -134,7 +134,23 @@ export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devic
 
         if (values?.contact !== undefined) return <ContactCard key={device.id} device={device} contact={values.contact} />
 
-        return <ClimateCard key={device.id} device={device} values={values ?? {}} range={range} />
+        const cards = []
+        if (values?.temperature !== undefined) {
+          cards.push(
+            <TemperatureCard
+              key={`${device.id}-temperature`}
+              device={device}
+              temperature={values.temperature}
+              range={range}
+            />,
+          )
+        }
+        if (values?.humidity !== undefined) {
+          cards.push(
+            <HumidityCard key={`${device.id}-humidity`} device={device} humidity={values.humidity} range={range} />,
+          )
+        }
+        return cards
       })}
     </div>
   )
@@ -203,25 +219,54 @@ function ContactCard({ device, contact }: { device: Device; contact: number }) {
   )
 }
 
-function ClimateCard({ device, values, range }: { device: Device; values: SensorValues; range: TimeRange }) {
+function TemperatureCard({ device, temperature, range }: { device: Device; temperature: number; range: TimeRange }) {
   const [historyOpen, setHistoryOpen] = useState(false)
-  const hasTemperature = values.temperature !== undefined
-  const hasHumidity = values.humidity !== undefined
 
   return (
     <section className="rounded-2xl border border-line bg-surface-raised p-5">
-      <CardHeader device={device} />
-      <div className="mt-8 flex gap-8">
-        {hasTemperature && <p className="font-mono text-3xl font-semibold text-warm">{values.temperature?.toFixed(1)}°C</p>}
-        {hasHumidity && <p className="font-mono text-3xl font-semibold text-cool">{Math.round(values.humidity ?? 0)}%</p>}
+      <div className="flex items-start justify-between gap-3">
+        <Link to={`/device/${device.id}`} className="flex min-w-0 items-center gap-3 hover:text-accent">
+          <IconThermometer className="size-5 shrink-0 text-ink-muted" />
+          <h3 className="truncate text-base font-medium text-ink">{device.friendlyName}</h3>
+        </Link>
+        <span title={device.available ? 'Online' : 'Offline'}>
+          <LiveDot online={device.available} />
+        </span>
       </div>
+      <p className="mt-8 font-mono text-3xl font-semibold text-warm">{temperature.toFixed(1)}°C</p>
       <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
         {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
       </Button>
       {historyOpen && (
-        <div className="mt-4 grid gap-4">
-          {hasTemperature && <TelemetryFieldChart deviceKey={device.ieeeAddress} field="temperature" range={range} />}
-          {hasHumidity && <TelemetryFieldChart deviceKey={device.ieeeAddress} field="humidity" range={range} />}
+        <div className="mt-4 rounded-xl border border-line bg-surface-sunken/40 p-3">
+          <TelemetryFieldChart deviceKey={device.ieeeAddress} field="temperature" range={range} />
+        </div>
+      )}
+    </section>
+  )
+}
+
+function HumidityCard({ device, humidity, range }: { device: Device; humidity: number; range: TimeRange }) {
+  const [historyOpen, setHistoryOpen] = useState(false)
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface-raised p-5">
+      <div className="flex items-start justify-between gap-3">
+        <Link to={`/device/${device.id}`} className="flex min-w-0 items-center gap-3 hover:text-accent">
+          <IconDroplet className="size-5 shrink-0 text-ink-muted" />
+          <h3 className="truncate text-base font-medium text-ink">{device.friendlyName}</h3>
+        </Link>
+        <span title={device.available ? 'Online' : 'Offline'}>
+          <LiveDot online={device.available} />
+        </span>
+      </div>
+      <p className="mt-8 font-mono text-3xl font-semibold text-cool">{Math.round(humidity)}%</p>
+      <Button variant="ghost" size="sm" className="mt-6" onClick={() => setHistoryOpen((open) => !open)}>
+        {historyOpen ? 'Skrýt historii' : 'Zobrazit historii'}
+      </Button>
+      {historyOpen && (
+        <div className="mt-4 rounded-xl border border-line bg-surface-sunken/40 p-3">
+          <TelemetryFieldChart deviceKey={device.ieeeAddress} field="humidity" range={range} />
         </div>
       )}
     </section>
