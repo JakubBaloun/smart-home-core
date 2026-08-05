@@ -1,19 +1,54 @@
 """Mirror of DeviceResource / CommandResource."""
 
 import logging
+import asyncio
+import json
+from queue import Empty, Queue
 from typing import Any
 
 from fastapi import APIRouter, Response
+from fastapi.responses import StreamingResponse
 
+from app.common.events import event_bus
 from app.common.exceptions import BadRequestError, DeviceUnavailableError
 from app.device import mappers
 from app.device.command_service import device_command_service
+from app.device.events import DeviceStateChangedEvent
 from app.device.schemas import DeviceCommandRequest, DeviceResponse, UpdateDeviceRequest
 from app.device.service import device_service
 
 log = logging.getLogger(__name__)
 
 device_router = APIRouter(prefix="/api/devices", tags=["devices"])
+
+
+@device_router.get("/events")
+async def stream_device_events() -> StreamingResponse:
+    """Streams device reports to connected dashboards without waiting for polling."""
+    events: Queue[DeviceStateChangedEvent] = Queue()
+
+    def on_state_changed(event: DeviceStateChangedEvent) -> None:
+        events.put(event)
+
+    event_bus.subscribe(DeviceStateChangedEvent, on_state_changed)
+
+    async def stream():
+        try:
+            while True:
+                try:
+                    event = await asyncio.to_thread(events.get, True, 15)
+                    payload = json.dumps({"ieeeAddress": event.ieee_address, "state": event.state})
+                    yield f"event: state\ndata: {payload}\n\n"
+                except Empty:
+                    yield ": keepalive\n\n"
+        finally:
+            event_bus.unsubscribe(DeviceStateChangedEvent, on_state_changed)
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @device_router.get("", response_model=list[DeviceResponse])

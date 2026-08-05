@@ -70,4 +70,16 @@ describe('DeviceGrid', () => {
     await userEvent.click(screen.getByText('Zařízení (1)'))
     expect(screen.getByText('Světla')).toBeInTheDocument()
   })
+
+  it('can render a compact list collapsed by default', async () => {
+    render(
+      <MemoryRouter>
+        <DeviceGrid readings={[{ device: device({ id: 1, friendlyName: 'lamp', type: 'LIGHT' }) }]} variant="list" defaultCollapsed />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByText('lamp')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByText('Zařízení (1)'))
+    expect(screen.getByText('lamp')).toBeInTheDocument()
+  })
 })

@@ -45,7 +45,7 @@ export function RoomDetailPage() {
 
       {readings && (
         <>
-          <DeviceGrid readings={roomReadings} />
+          <DeviceGrid readings={roomReadings} variant="list" defaultCollapsed />
 
           <div className="mt-8">
             <div className="mb-4 inline-flex rounded-xl border border-line bg-surface-raised p-1">

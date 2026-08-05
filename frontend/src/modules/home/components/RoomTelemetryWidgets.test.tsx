@@ -5,6 +5,29 @@ import { MemoryRouter } from 'react-router-dom'
 import type { Device } from '@/modules/devices/types/device'
 import { RoomTelemetryWidgets } from './RoomTelemetryWidgets'
 
+class EventSourceStub {
+  static instances: EventSourceStub[] = []
+  listeners = new Map<string, (event: Event) => void>()
+
+  constructor(_url: string) {
+    EventSourceStub.instances.push(this)
+  }
+
+  addEventListener(type: string, listener: (event: Event) => void) {
+    this.listeners.set(type, listener)
+  }
+
+  removeEventListener(type: string) {
+    this.listeners.delete(type)
+  }
+
+  close() {}
+
+  emitState(data: unknown) {
+    this.listeners.get('state')?.({ data: JSON.stringify(data) } as MessageEvent<string>)
+  }
+}
+
 function device(overrides: Partial<Device> = {}): Device {
   return {
     id: 1,
@@ -35,7 +58,11 @@ function renderWidgets(devices: Device[]) {
 }
 
 describe('RoomTelemetryWidgets', () => {
-  beforeEach(() => vi.stubGlobal('fetch', vi.fn()))
+  beforeEach(() => {
+    EventSourceStub.instances = []
+    vi.stubGlobal('fetch', vi.fn())
+    vi.stubGlobal('EventSource', EventSourceStub)
+  })
   afterEach(() => vi.unstubAllGlobals())
 
   it('shows a climate device as one card and omits diagnostic values', async () => {
@@ -74,6 +101,16 @@ describe('RoomTelemetryWidgets', () => {
     expect(await screen.findByText('Zapnuto')).toBeInTheDocument()
     expect(screen.getByText('Vypnout')).toBeInTheDocument()
     await userEvent.click(screen.getByText('Vypnout'))
+    expect(screen.getByText('Vypnuto')).toBeInTheDocument()
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/devices/2/command', expect.objectContaining({ method: 'POST' })))
+  })
+
+  it('updates a controllable device immediately when Zigbee2MQTT confirms its state', async () => {
+    renderWidgets([device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Žárovka', type: 'LIGHT', state: 'OFF' })])
+
+    expect(await screen.findByText('Vypnuto')).toBeInTheDocument()
+    EventSourceStub.instances[0].emitState({ ieeeAddress: '0xbbb', state: 'ON' })
+
+    expect(await screen.findByText('Zapnuto')).toBeInTheDocument()
   })
 })

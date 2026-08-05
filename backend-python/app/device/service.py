@@ -11,7 +11,7 @@ from app.common.events import event_bus
 from app.common.exceptions import ResourceNotFoundError
 from app.db import read_session, transaction
 from app.device import z2m_mapper
-from app.device.events import DevicesSyncedEvent
+from app.device.events import DeviceStateChangedEvent, DevicesSyncedEvent
 from app.device.identity import DeviceIdentity
 from app.device.models import Device
 from app.device.repository import device_repository
@@ -80,6 +80,8 @@ class DeviceService:
             updated = device_repository.update_state_by_ieee(ieee_address, state, session)
         if updated == 0:
             log.debug("State update for unknown device '%s' ignored", ieee_address)
+            return
+        event_bus.publish(DeviceStateChangedEvent(ieee_address, state))
 
     def get_all_devices(self) -> list[Device]:
         with read_session() as session:

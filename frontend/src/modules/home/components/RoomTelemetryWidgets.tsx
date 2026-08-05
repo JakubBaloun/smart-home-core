@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePolling } from '@/hooks/usePolling'
 import { sendCommand } from '@/modules/devices/api/devices'
 import { getLatestTelemetry } from '@/modules/devices/api/telemetry'
@@ -54,6 +54,8 @@ async function getRoomDeviceSummaries(devices: Device[]): Promise<RoomDeviceSumm
 
 export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devices: Device[]; range: TimeRange }) {
   const [togglingId, setTogglingId] = useState<number | null>(null)
+  const [optimisticStates, setOptimisticStates] = useState<Record<number, 'ON' | 'OFF'>>({})
+  const [reportedStates, setReportedStates] = useState<Record<string, 'ON' | 'OFF'>>({})
   const deviceKeys = devices.map((device) => device.ieeeAddress).join(',')
   const { data: summaries } = usePolling(
     () => getRoomDeviceSummaries(devices),
@@ -61,13 +63,45 @@ export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devic
     [deviceKeys],
   )
 
-  const handleToggle = async (device: Device) => {
+  useEffect(() => {
+    if (typeof EventSource === 'undefined') return
+
+    const source = new EventSource('/api/devices/events')
+    const onState = (message: Event) => {
+      const { ieeeAddress, state } = JSON.parse((message as MessageEvent<string>).data) as {
+        ieeeAddress: string
+        state: 'ON' | 'OFF'
+      }
+      if (state !== 'ON' && state !== 'OFF') return
+
+      setReportedStates((states) => ({ ...states, [ieeeAddress]: state }))
+      const device = devices.find((candidate) => candidate.ieeeAddress === ieeeAddress)
+      if (!device) return
+      setOptimisticStates((states) => {
+        if (states[device.id] !== state) return states
+        const { [device.id]: _confirmed, ...remaining } = states
+        return remaining
+      })
+    }
+
+    source.addEventListener('state', onState)
+    return () => {
+      source.removeEventListener('state', onState)
+      source.close()
+    }
+  }, [deviceKeys, devices])
+
+  const handleToggle = async (device: Device, currentState: 'ON' | 'OFF' | null) => {
+    const nextState = currentState === 'ON' ? 'OFF' : 'ON'
+    setOptimisticStates((states) => ({ ...states, [device.id]: nextState }))
     setTogglingId(device.id)
     try {
       await sendCommand(device.id, {
         command: 'setState',
-        payload: { state: device.state === 'ON' ? 'OFF' : 'ON' },
+        payload: { state: nextState },
       })
+    } catch {
+      setOptimisticStates(({ [device.id]: _discarded, ...states }) => states)
     } finally {
       setTogglingId(null)
     }
@@ -85,12 +119,14 @@ export function RoomTelemetryWidgets({ devices, range }: { roomId: string; devic
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
       {visibleSummaries.map(({ device, values }) => {
         if (CONTROLLABLE_TYPES.has(device.type)) {
+          const state = optimisticStates[device.id] ?? reportedStates[device.ieeeAddress] ?? device.state
           return (
             <ControlCard
               key={device.id}
               device={device}
               toggling={togglingId === device.id}
-              onToggle={() => handleToggle(device)}
+              state={state}
+              onToggle={() => handleToggle(device, state)}
             />
           )
         }
@@ -118,8 +154,18 @@ function CardHeader({ device }: { device: Device }) {
   )
 }
 
-function ControlCard({ device, toggling, onToggle }: { device: Device; toggling: boolean; onToggle: () => void }) {
-  const isOn = device.state === 'ON'
+function ControlCard({
+  device,
+  state,
+  toggling,
+  onToggle,
+}: {
+  device: Device
+  state: 'ON' | 'OFF' | null
+  toggling: boolean
+  onToggle: () => void
+}) {
+  const isOn = state === 'ON'
   return (
     <section className="flex min-h-48 flex-col justify-between rounded-2xl border border-line bg-surface-raised p-5">
       <CardHeader device={device} />
@@ -127,7 +173,7 @@ function ControlCard({ device, toggling, onToggle }: { device: Device; toggling:
         <p className={`font-mono text-3xl font-semibold ${isOn ? 'text-warm' : 'text-ink-muted'}`}>
           {isOn ? 'Zapnuto' : 'Vypnuto'}
         </p>
-        <p className="mt-1 text-sm text-ink-muted">{device.state === null ? 'Stav se načte po další zprávě zařízení.' : 'Aktuální stav zařízení'}</p>
+        <p className="mt-1 text-sm text-ink-muted">{state === null ? 'Stav se načte po další zprávě zařízení.' : 'Aktuální stav zařízení'}</p>
       </div>
       <Button variant={isOn ? 'neutral' : 'primary'} className="mt-6 w-full" disabled={toggling} onClick={onToggle}>
         {isOn ? 'Vypnout' : 'Zapnout'}

@@ -20,6 +20,11 @@ class EventBus:
         if handler not in self._subscribers[event_type]:
             self._subscribers[event_type].append(handler)
 
+    def unsubscribe(self, event_type: type, handler: Callable) -> None:
+        subscribers = self._subscribers.get(event_type)
+        if subscribers and handler in subscribers:
+            subscribers.remove(handler)
+
     def publish(self, event: object) -> None:
         for handler in self._subscribers[type(event)]:
             try:
