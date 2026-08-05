@@ -18,6 +18,8 @@ class DeviceResponse(BaseModel):
     createdAt: OffsetDateTime
     updatedAt: OffsetDateTime
     state: str | None
+    brightness: int | None
+    colorTemp: int | None
 
     # 'model' collides with Pydantic's protected namespace, which is only a warning.
     model_config = ConfigDict(protected_namespaces=())

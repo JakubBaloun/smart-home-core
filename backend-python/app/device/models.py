@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import BigInteger, Boolean, DateTime, String
+from sqlalchemy import BigInteger, Boolean, DateTime, SmallInteger, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -33,6 +33,8 @@ class Device(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
     state: Mapped[str | None] = mapped_column(String(10))
+    brightness: Mapped[int | None] = mapped_column(SmallInteger)
+    color_temp: Mapped[int | None] = mapped_column(SmallInteger)
 
 
 class DeviceAlias(Base):

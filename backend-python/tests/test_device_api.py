@@ -68,6 +68,16 @@ def test_get_device_by_id_includes_null_state_by_default(client, seeded_device_i
     assert body["state"] is None
 
 
+def test_get_device_by_id_includes_null_brightness_and_color_temp_by_default(client, seeded_device_id):
+    response = client.get(f"/api/devices/{seeded_device_id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert "brightness" in body
+    assert body["brightness"] is None
+    assert "colorTemp" in body
+    assert body["colorTemp"] is None
+
+
 def test_get_device_not_found(client):
     response = client.get("/api/devices/999999")
     assert response.status_code == 404

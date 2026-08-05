@@ -21,7 +21,9 @@ CREATE TABLE device (
     last_seen TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    state VARCHAR(10)
+    state VARCHAR(10),
+    brightness SMALLINT,
+    color_temp SMALLINT
 );
 CREATE INDEX idx_device_ieee_address ON device(ieee_address);
 CREATE INDEX idx_device_type ON device(type);

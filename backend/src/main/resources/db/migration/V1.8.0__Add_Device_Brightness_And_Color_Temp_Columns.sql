@@ -1,0 +1,2 @@
+ALTER TABLE device ADD COLUMN brightness SMALLINT;
+ALTER TABLE device ADD COLUMN color_temp SMALLINT;

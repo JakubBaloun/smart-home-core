@@ -17,6 +17,8 @@ def to_response(device: Device) -> DeviceResponse:
         createdAt=device.created_at,
         updatedAt=device.updated_at,
         state=device.state,
+        brightness=device.brightness,
+        colorTemp=device.color_temp,
     )
 
 
