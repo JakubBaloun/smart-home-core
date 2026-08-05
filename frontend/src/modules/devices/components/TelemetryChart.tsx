@@ -44,14 +44,21 @@ export function TelemetryChart({
             <defs>
               {/* Anchored to the fixed [14, 32] domain, not data range. Bands follow how a
                   bedroom actually feels: <17 cold, 17-19 cool, 19-22 ideal, 22-25 warm,
-                  25-28 hot, >28 extreme. */}
+                  25-28 hot, >28 extreme. Each band holds a near-solid color, with a short
+                  blend at the boundary — avoids the muddy mid-tones a straight linear
+                  interpolation produces between far-apart hues (e.g. green/amber). */}
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2={plotHeight} gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor={palette.extreme} />
-                <stop offset="22.2%" stopColor={palette.danger} />
-                <stop offset="38.9%" stopColor={palette.warm} />
-                <stop offset="55.6%" stopColor={palette.ok} />
-                <stop offset="72.2%" stopColor={palette.ok} />
-                <stop offset="83.3%" stopColor={palette.series} />
+                <stop offset="21.6%" stopColor={palette.extreme} />
+                <stop offset="22.8%" stopColor={palette.danger} />
+                <stop offset="38.3%" stopColor={palette.danger} />
+                <stop offset="39.5%" stopColor={palette.warm} />
+                <stop offset="55%" stopColor={palette.warm} />
+                <stop offset="56.2%" stopColor={palette.ok} />
+                <stop offset="71.6%" stopColor={palette.ok} />
+                <stop offset="72.8%" stopColor={palette.series} />
+                <stop offset="82.7%" stopColor={palette.series} />
+                <stop offset="83.9%" stopColor={palette.accent} />
                 <stop offset="100%" stopColor={palette.accent} />
               </linearGradient>
             </defs>
