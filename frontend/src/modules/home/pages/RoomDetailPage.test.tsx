@@ -124,4 +124,32 @@ describe('RoomDetailPage', () => {
 
     expect(await screen.findByRole('button', { name: '30d' })).toBeInTheDocument()
   })
+
+  it('shows stat cards and history sections instead of the old masonry widgets', async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === DEVICES_PATH) {
+        return Promise.resolve(
+          jsonResponse([
+            device({ id: 1, ieeeAddress: '0xe456acfffe5dc028', friendlyName: 'Office temp', type: 'SENSOR' }),
+          ]),
+        )
+      }
+      if (url === '/api/telemetry/0xe456acfffe5dc028/latest') {
+        return Promise.resolve(
+          jsonResponse({ deviceName: 'Office temp', values: { temperature: 22 }, lastUpdated: null }),
+        )
+      }
+      if (url.startsWith('/api/telemetry/0xe456acfffe5dc028?')) {
+        return Promise.resolve(jsonResponse({ deviceName: 'Office temp', field: 'temperature', points: [] }))
+      }
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+
+    renderRoom('office')
+
+    expect(await screen.findByText('22.0°C')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 3, name: /Office temp · teplota/ })).toBeInTheDocument()
+    expect(screen.queryByText('Zobrazit historii')).toBeNull()
+  })
 })
