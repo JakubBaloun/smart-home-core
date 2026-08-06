@@ -64,5 +64,6 @@ class Z2MDevicePayload(BaseModel):
     vendor: str | None = None
     model: str | None = None
     definition: Z2MDefinition | None = None
+    exposes: list[dict] | None = None
 
     model_config = ConfigDict(protected_namespaces=())

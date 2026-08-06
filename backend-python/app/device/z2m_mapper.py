@@ -43,6 +43,7 @@ def to_entity(payload: Z2MDevicePayload) -> Device:
         model=resolve_model(payload),
         available=True,
         last_seen=datetime.now(timezone.utc),
+        exposes=payload.exposes,
     )
 
 
@@ -53,4 +54,5 @@ def update_entity_from_payload(payload: Z2MDevicePayload, device: Device) -> Non
     device.type = determine_type(payload).value
     device.vendor = resolve_vendor(payload)
     device.model = resolve_model(payload)
+    device.exposes = payload.exposes
     device.updated_at = datetime.now(timezone.utc)

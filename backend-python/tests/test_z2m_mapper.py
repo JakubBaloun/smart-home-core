@@ -84,3 +84,46 @@ def test_update_entity_does_not_touch_availability():
     assert existing.available is False
     assert existing.last_seen is None
     assert existing.ieee_address == "00:11:22:33:44:55"
+
+
+RGB_BULB_EXPOSES = [
+    {
+        "type": "light",
+        "features": [
+            {"name": "brightness", "type": "numeric", "value_min": 0, "value_max": 254},
+            {"name": "color_temp", "type": "numeric", "value_min": 153, "value_max": 500},
+            {
+                "type": "composite",
+                "name": "color_hs",
+                "features": [
+                    {"name": "hue", "type": "numeric", "value_min": 0, "value_max": 360},
+                    {"name": "saturation", "type": "numeric", "value_min": 0, "value_max": 100},
+                ],
+            },
+        ],
+    }
+]
+
+
+def test_to_entity_persists_exposes_verbatim():
+    entity = z2m_mapper.to_entity(payload("Hue color bulb", exposes=RGB_BULB_EXPOSES))
+    assert entity.exposes == RGB_BULB_EXPOSES
+
+
+def test_update_entity_from_payload_overwrites_exposes():
+    existing = Device(
+        ieee_address="00:11:22:33:44:55",
+        friendly_name="old",
+        type=DeviceType.LIGHT.value,
+        available=True,
+        exposes=[{"stale": True}],
+    )
+    z2m_mapper.update_entity_from_payload(
+        payload("Hue color bulb", friendly_name="new", exposes=RGB_BULB_EXPOSES), existing
+    )
+    assert existing.exposes == RGB_BULB_EXPOSES
+
+
+def test_to_entity_without_exposes_leaves_column_null():
+    entity = z2m_mapper.to_entity(payload("Motion sensor"))
+    assert entity.exposes is None
