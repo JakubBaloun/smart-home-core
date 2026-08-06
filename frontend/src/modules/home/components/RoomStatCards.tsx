@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer } from 'recharts'
 import { usePolling } from '@/hooks/usePolling'
@@ -56,10 +56,14 @@ function LightToggle({ checked, onToggle, disabled }: { checked: boolean; onTogg
       className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 disabled:opacity-50"
     >
       <span
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${checked ? 'bg-accent' : 'bg-line'}`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full border transition ${
+          checked ? 'border-accent bg-accent' : 'border-line bg-surface'
+        }`}
       >
         <span
-          className={`inline-block size-4 transform rounded-full bg-white transition ${checked ? 'translate-x-6' : 'translate-x-1'}`}
+          className={`inline-block size-4 transform rounded-full transition ${
+            checked ? 'translate-x-6 bg-white' : 'translate-x-1 bg-ink-muted'
+          }`}
         />
       </span>
     </button>
@@ -145,15 +149,22 @@ function ContactStatCard({ device, contact, range }: { device: Device; contact: 
 
 function LightStatCard({ device, onRefresh }: { device: Device; onRefresh: () => void | Promise<void> }) {
   const [sending, setSending] = useState(false)
-  const isOn = device.state === 'ON'
+  const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null)
+  const isOn = optimisticOn ?? device.state === 'ON'
   const brightnessPct = device.brightness !== null ? Math.round((device.brightness / 254) * 100) : null
   const secondary = isOn && brightnessPct !== null ? `${brightnessPct} %` : undefined
   const icon = device.type === 'LIGHT' ? IconBulb : device.type === 'PLUG' ? IconPlug : IconSwitch
 
+  useEffect(() => {
+    setOptimisticOn(null)
+  }, [device.state])
+
   const handleToggle = async () => {
+    const nextOn = !isOn
+    setOptimisticOn(nextOn)
     setSending(true)
     try {
-      await sendCommand(device.id, { command: 'setState', payload: { state: isOn ? 'OFF' : 'ON' } })
+      await sendCommand(device.id, { command: 'setState', payload: { state: nextOn ? 'ON' : 'OFF' } })
       await onRefresh()
     } finally {
       setSending(false)
