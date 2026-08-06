@@ -20,10 +20,7 @@ CREATE TABLE device (
     available BOOLEAN NOT NULL DEFAULT FALSE,
     last_seen TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    state VARCHAR(10),
-    brightness SMALLINT,
-    color_temp SMALLINT
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 CREATE INDEX idx_device_ieee_address ON device(ieee_address);
 CREATE INDEX idx_device_type ON device(type);
@@ -129,3 +126,15 @@ CREATE TABLE calendar_event (
     CONSTRAINT chk_calendar_event_person CHECK (person IN ('KUBA', 'PETA', 'BOTH'))
 );
 CREATE INDEX idx_calendar_event_event_date ON calendar_event(event_date);
+
+-- V1.7.0__Add_Device_State_Column.sql
+ALTER TABLE device ADD COLUMN state VARCHAR(10);
+
+-- V1.8.0__Add_Device_Brightness_And_Color_Temp_Columns.sql
+ALTER TABLE device ADD COLUMN brightness SMALLINT;
+ALTER TABLE device ADD COLUMN color_temp SMALLINT;
+
+-- V1.9.0__Add_Device_Exposes_And_Color_Columns.sql
+ALTER TABLE device ADD COLUMN exposes JSONB;
+ALTER TABLE device ADD COLUMN hue SMALLINT;
+ALTER TABLE device ADD COLUMN saturation SMALLINT;
