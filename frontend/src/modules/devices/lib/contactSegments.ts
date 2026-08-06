@@ -1,45 +1,68 @@
 import type { TelemetryPoint } from '../types/telemetry'
 
+export interface StateSegment {
+  active: boolean
+  startMs: number
+  endMs: number
+}
+
 export interface ContactSegment {
-  /** true = closed, false = open. */
+  /** true = closed, false = open. Kept for callers that predate buildStateSegments. */
   closed: boolean
   startMs: number
   endMs: number
 }
 
-function isClosed(value: number): boolean {
-  return value === 1
+interface BuildStateSegmentsOptions {
+  isActive: (value: number) => boolean
 }
 
 /**
- * Builds contiguous closed/open segments spanning [fromMs, toMs]. The state
+ * Builds contiguous active/inactive segments spanning [fromMs, toMs]. The state
  * before the first observed point is assumed to equal that point's value —
  * there is no earlier data to know otherwise.
  */
-export function buildContactSegments(points: TelemetryPoint[], fromMs: number, toMs: number): ContactSegment[] {
+export function buildStateSegments(
+  points: TelemetryPoint[],
+  fromMs: number,
+  toMs: number,
+  { isActive }: BuildStateSegmentsOptions,
+): StateSegment[] {
   if (points.length === 0) return []
 
   const sorted = [...points].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
-  const segments: ContactSegment[] = []
-  let currentState = isClosed(sorted[0].value)
+  const segments: StateSegment[] = []
+  let currentState = isActive(sorted[0].value)
   let segmentStart = fromMs
 
   for (const p of sorted) {
     const t = new Date(p.time).getTime()
-    const state = isClosed(p.value)
+    const state = isActive(p.value)
     if (t <= segmentStart) {
       currentState = state
       continue
     }
     if (state !== currentState) {
-      segments.push({ closed: currentState, startMs: segmentStart, endMs: t })
+      segments.push({ active: currentState, startMs: segmentStart, endMs: t })
       segmentStart = t
       currentState = state
     }
   }
 
-  segments.push({ closed: currentState, startMs: segmentStart, endMs: toMs })
+  segments.push({ active: currentState, startMs: segmentStart, endMs: toMs })
   return segments
+}
+
+export function buildContactSegments(
+  points: TelemetryPoint[],
+  fromMs: number,
+  toMs: number,
+): ContactSegment[] {
+  return buildStateSegments(points, fromMs, toMs, { isActive: (v) => v === 1 }).map((s) => ({
+    closed: s.active,
+    startMs: s.startMs,
+    endMs: s.endMs,
+  }))
 }
 
 export function formatDuration(ms: number): string {

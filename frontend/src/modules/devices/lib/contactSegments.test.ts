@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildContactSegments, formatDuration } from './contactSegments'
+import { buildContactSegments, buildStateSegments, formatDuration } from './contactSegments'
 import type { TelemetryPoint } from '../types/telemetry'
 
 const FROM = new Date('2026-08-01T00:00:00Z').getTime()
@@ -52,6 +52,43 @@ describe('buildContactSegments', () => {
     const points = [point('2026-08-01T00:10:00Z', 0)]
 
     expect(buildContactSegments(points, FROM, TO)).toEqual([{ closed: false, startMs: FROM, endMs: TO }])
+  })
+})
+
+describe('buildStateSegments', () => {
+  const isActive = (v: number) => v === 1
+
+  it('returns no segments when there are no points', () => {
+    expect(buildStateSegments([], FROM, TO, { isActive })).toEqual([])
+  })
+
+  it('emits a single active segment spanning the whole range when state never changes', () => {
+    const points = [point('2026-08-01T00:10:00Z', 1), point('2026-08-01T00:40:00Z', 1)]
+
+    expect(buildStateSegments(points, FROM, TO, { isActive })).toEqual([
+      { active: true, startMs: FROM, endMs: TO },
+    ])
+  })
+
+  it('splits into segments at each observed state change', () => {
+    const points = [point('2026-08-01T00:20:00Z', 1), point('2026-08-01T00:40:00Z', 0)]
+    const t1 = new Date('2026-08-01T00:40:00Z').getTime()
+
+    expect(buildStateSegments(points, FROM, TO, { isActive })).toEqual([
+      { active: true, startMs: FROM, endMs: t1 },
+      { active: false, startMs: t1, endMs: TO },
+    ])
+  })
+
+  it('supports a custom predicate mapping "true" values to different scalars', () => {
+    const isActiveTrue = (v: number) => v > 0
+    const points = [point('2026-08-01T00:10:00Z', 254), point('2026-08-01T00:40:00Z', 0)]
+    const t1 = new Date('2026-08-01T00:40:00Z').getTime()
+
+    expect(buildStateSegments(points, FROM, TO, { isActive: isActiveTrue })).toEqual([
+      { active: true, startMs: FROM, endMs: t1 },
+      { active: false, startMs: t1, endMs: TO },
+    ])
   })
 })
 
