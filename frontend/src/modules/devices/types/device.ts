@@ -11,13 +11,17 @@ export interface Device {
   state: 'ON' | 'OFF' | null
   brightness: number | null
   colorTemp: number | null
+  hue?: number | null
+  saturation?: number | null
+  colorMode?: string | null
+  supportsColor?: boolean
   lastSeen: string | null
   createdAt: string
   updatedAt: string
 }
 
 export interface DeviceCommandRequest {
-  command: 'setState' | 'setBrightness' | 'setColorTemp' | 'raw'
+  command: 'setState' | 'setBrightness' | 'setColorTemp' | 'setColor' | 'raw'
   payload: Record<string, unknown>
 }
 
