@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getLatestTelemetry, getTelemetryHistory } from './telemetry'
+import { getLatestTelemetry, getTelemetryHistory, getRangeBounds } from './telemetry'
 
 const IEEE = '0x00124b0022ab1234'
 
@@ -46,5 +46,14 @@ describe('telemetry api client', () => {
     const params = new URLSearchParams(requestedPath().split('?')[1])
     const spanMs = new Date(params.get('to')!).getTime() - new Date(params.get('from')!).getTime()
     expect(spanMs).toBe(60 * 60 * 1000)
+  })
+})
+
+describe('getRangeBounds 30d', () => {
+  it('returns a 30-day window ending at now', () => {
+    const now = new Date('2026-08-06T00:00:00Z')
+    const { from, to } = getRangeBounds('30d', now)
+    expect(to.getTime() - from.getTime()).toBe(30 * 24 * 60 * 60 * 1000)
+    expect(to.getTime()).toBe(now.getTime())
   })
 })

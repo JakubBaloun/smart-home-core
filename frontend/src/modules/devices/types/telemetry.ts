@@ -28,4 +28,4 @@ export const KNOWN_TELEMETRY_FIELDS = [
 
 export type TelemetryField = (typeof KNOWN_TELEMETRY_FIELDS)[number]
 
-export type TimeRange = '1h' | '6h' | '24h' | '7d'
+export type TimeRange = '1h' | '6h' | '24h' | '7d' | '30d'

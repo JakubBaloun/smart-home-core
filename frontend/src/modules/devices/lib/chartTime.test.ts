@@ -16,3 +16,10 @@ describe('formatChartTime', () => {
     expect(formatChartTime('2026-08-03T09:07:00Z', '7d')).toBe(`${d.getDate()}.${d.getMonth() + 1} ${hh}:${mm}`)
   })
 })
+
+describe('formatChartTime for 30d', () => {
+  it('uses day.month + HH:MM for a 30d range, same as 7d', () => {
+    const iso = '2026-08-01T14:05:00Z'
+    expect(formatChartTime(iso, '30d')).toBe(formatChartTime(iso, '7d'))
+  })
+})
