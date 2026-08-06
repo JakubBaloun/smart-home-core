@@ -61,3 +61,29 @@ Object.defineProperty(globalThis, 'ResizeObserver', {
   configurable: true,
   writable: true,
 })
+
+/*
+ * jsdom doesn't implement the Pointer Capture API (setPointerCapture/releasePointerCapture/
+ * hasPointerCapture). ColorWheel calls setPointerCapture on pointerdown so a drag keeps
+ * tracking even if the pointer leaves the wheel; without a stub, firing a pointerdown event
+ * in tests throws "setPointerCapture is not a function".
+ */
+Object.defineProperty(Element.prototype, 'setPointerCapture', {
+  value: function setPointerCapture() {},
+  configurable: true,
+  writable: true,
+})
+
+Object.defineProperty(Element.prototype, 'releasePointerCapture', {
+  value: function releasePointerCapture() {},
+  configurable: true,
+  writable: true,
+})
+
+Object.defineProperty(Element.prototype, 'hasPointerCapture', {
+  value: function hasPointerCapture() {
+    return false
+  },
+  configurable: true,
+  writable: true,
+})

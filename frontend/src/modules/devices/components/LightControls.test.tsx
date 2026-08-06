@@ -152,4 +152,72 @@ describe('LightControls', () => {
     expect(screen.getByLabelText('Jas')).toBeEnabled()
     expect(screen.getByLabelText('Barva světla')).toBeEnabled()
   })
+
+  it('does not render the Bílá/Barva toggle when the device has no color support', () => {
+    render(<LightControls device={device({ supportsColor: false })} />)
+    expect(screen.queryByRole('tab', { name: 'Barva' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Bílá' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Jas')).toBeInTheDocument()
+    expect(screen.getByLabelText('Barva světla')).toBeInTheDocument()
+  })
+
+  it('renders the Bílá/Barva toggle when the device supports color', () => {
+    render(
+      <LightControls
+        device={device({ supportsColor: true, colorMode: 'color_temp', hue: 200, saturation: 80 })}
+      />,
+    )
+    expect(screen.getByRole('tab', { name: 'Bílá' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Barva' })).toBeInTheDocument()
+    // colorMode !== 'hs' => Bílá is the default tab
+    expect(screen.getByLabelText('Barva světla')).toBeInTheDocument()
+    // Exact name match, not a /barva/i substring: the pre-existing color-temp slider is
+    // labelled "Barva světla" (unchanged) and would otherwise also match role=slider.
+    expect(screen.queryByRole('slider', { name: 'Barva' })).not.toBeInTheDocument()
+  })
+
+  it('defaults to the Barva tab when colorMode is "hs"', () => {
+    render(
+      <LightControls
+        device={device({ supportsColor: true, colorMode: 'hs', hue: 200, saturation: 80 })}
+      />,
+    )
+    expect(screen.queryByLabelText('Barva světla')).not.toBeInTheDocument()
+    expect(screen.getByRole('slider', { name: 'Barva' })).toBeInTheDocument()
+  })
+
+  it('does not send any command when the user only switches tabs', () => {
+    render(
+      <LightControls
+        device={device({ supportsColor: true, colorMode: 'color_temp', hue: 200, saturation: 80 })}
+      />,
+    )
+    fireEvent.click(screen.getByRole('tab', { name: 'Barva' }))
+    expect(sendCommand).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('tab', { name: 'Bílá' }))
+    expect(sendCommand).not.toHaveBeenCalled()
+  })
+
+  it('sends setColor when the color wheel commits', () => {
+    render(
+      <LightControls
+        device={device({ supportsColor: true, colorMode: 'hs', hue: 200, saturation: 80 })}
+      />,
+    )
+    const wheel = screen.getByRole('slider', { name: 'Barva' })
+    fireEvent.pointerDown(wheel, { clientX: 50, clientY: 50, pointerId: 1 })
+    fireEvent.pointerUp(wheel, { clientX: 50, clientY: 50, pointerId: 1 })
+
+    expect(sendCommand).toHaveBeenCalledTimes(1)
+    const call = vi.mocked(sendCommand).mock.calls[0]
+    expect(call[0]).toBe(1)
+    expect(call[1].command).toBe('setColor')
+    const payload = call[1].payload as { hue: number; saturation: number }
+    expect(typeof payload.hue).toBe('number')
+    expect(typeof payload.saturation).toBe('number')
+    expect(payload.hue).toBeGreaterThanOrEqual(0)
+    expect(payload.hue).toBeLessThanOrEqual(360)
+    expect(payload.saturation).toBeGreaterThanOrEqual(0)
+    expect(payload.saturation).toBeLessThanOrEqual(100)
+  })
 })
