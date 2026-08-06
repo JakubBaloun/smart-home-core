@@ -117,6 +117,9 @@ export function ColorWheel({
     opacity: disabled ? 0.5 : 1,
     cursor: disabled ? 'not-allowed' : 'crosshair',
   }
+  // Fixed white+black ring (not theme tokens) so the thumb stays visible
+  // against every hue/lightness on the wheel, unlike a themed --surface
+  // border which vanishes against bright yellows or light themes.
   const thumbStyle: CSSProperties = {
     position: 'absolute',
     left: thumb.x - 10,
@@ -125,8 +128,9 @@ export function ColorWheel({
     height: 20,
     borderRadius: '50%',
     background: `hsl(${localHue} ${localSaturation}% 50%)`,
-    border: '3px solid var(--surface, #fff)',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+    border: '2px solid white',
+    outline: '2px solid rgba(0, 0, 0, 0.65)',
+    boxShadow: `0 1px 4px color-mix(in srgb, var(--ink) 35%, transparent)`,
     pointerEvents: 'none',
   }
 
