@@ -20,6 +20,10 @@ class DeviceResponse(BaseModel):
     state: str | None
     brightness: int | None
     colorTemp: int | None
+    hue: int | None
+    saturation: int | None
+    colorMode: str | None
+    supportsColor: bool
 
     # 'model' collides with Pydantic's protected namespace, which is only a warning.
     model_config = ConfigDict(protected_namespaces=())

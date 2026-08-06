@@ -39,6 +39,7 @@ class Device(Base):
     exposes: Mapped[list | dict | None] = mapped_column(JSONB)
     hue: Mapped[int | None] = mapped_column(SmallInteger)
     saturation: Mapped[int | None] = mapped_column(SmallInteger)
+    color_mode: Mapped[str | None] = mapped_column(String(20))
 
 
 class DeviceAlias(Base):

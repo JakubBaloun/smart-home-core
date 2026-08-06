@@ -1,5 +1,6 @@
 """Mirror of DeviceMapper (MapStruct)."""
 
+from app.device.capabilities import supports_color
 from app.device.models import Device
 from app.device.schemas import DeviceResponse
 
@@ -19,6 +20,10 @@ def to_response(device: Device) -> DeviceResponse:
         state=device.state,
         brightness=device.brightness,
         colorTemp=device.color_temp,
+        hue=device.hue,
+        saturation=device.saturation,
+        colorMode=device.color_mode,
+        supportsColor=supports_color(device.exposes),
     )
 
 

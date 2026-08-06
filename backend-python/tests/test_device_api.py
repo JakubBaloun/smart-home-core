@@ -217,3 +217,54 @@ def test_blank_command_returns_400(client, seeded_device_id, published):
         json={"command": "", "payload": {"state": "ON"}},
     )
     assert response.status_code == 400
+
+
+def test_get_device_by_id_includes_color_fields_defaults(client, seeded_device_id):
+    body = client.get(f"/api/devices/{seeded_device_id}").json()
+    assert body["hue"] is None
+    assert body["saturation"] is None
+    assert body["colorMode"] is None
+    # sensor with no exposes -> supportsColor False, not null
+    assert body["supportsColor"] is False
+
+
+def test_get_device_by_id_derives_supports_color_from_exposes(client):
+    from app.db import transaction
+    from app.device.models import Device, DeviceType
+    from app.device.repository import device_repository
+
+    with transaction() as session:
+        device = Device(
+            ieee_address="AA:BB:CC:DD:EE:FF:00:22",
+            friendly_name="rgb_bulb",
+            type=DeviceType.LIGHT.value,
+            available=True,
+            hue=120,
+            saturation=75,
+            color_mode="hs",
+            exposes=[
+                {
+                    "type": "light",
+                    "features": [
+                        {
+                            "type": "composite",
+                            "name": "color_hs",
+                            "features": [
+                                {"name": "hue", "type": "numeric"},
+                                {"name": "saturation", "type": "numeric"},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        )
+        device_repository.save(device, session)
+        session.flush()
+        device_id = device.id
+
+    body = client.get(f"/api/devices/{device_id}").json()
+    assert body["hue"] == 120
+    assert body["saturation"] == 75
+    assert body["colorMode"] == "hs"
+    assert body["supportsColor"] is True
+    assert "exposes" not in body
