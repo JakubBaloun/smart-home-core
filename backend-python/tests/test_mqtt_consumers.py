@@ -361,3 +361,99 @@ def test_health_reflects_bridge_state(client):
 
     consumers.consume_bridge_state("zigbee2mqtt/bridge/state", b"online")
     assert client.get("/q/health").json()["status"] == "UP"
+
+
+def test_consume_telemetry_writes_color_hue_saturation_and_mode_to_postgres(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:EE",
+                friendly_name="rgb_bulb",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/rgb_bulb",
+        _encode({"color": {"hue": 200, "saturation": 80}, "color_mode": "hs"}),
+    )
+
+    # color fields never reach InfluxDB
+    assert written == []
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:EE", session)
+    assert device.hue == 200
+    assert device.saturation == 80
+    assert device.color_mode == "hs"
+
+
+def test_consume_telemetry_partial_color_update_does_not_clobber_brightness_or_temp(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:FE",
+                friendly_name="rgb_bulb_2",
+                type=DeviceType.LIGHT.value,
+                available=True,
+                brightness=100,
+                color_temp=300,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/rgb_bulb_2", _encode({"color": {"hue": 10, "saturation": 90}})
+    )
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:FE", session)
+    assert device.brightness == 100
+    assert device.color_temp == 300
+    assert device.hue == 10
+    assert device.saturation == 90
+
+
+def test_consume_telemetry_color_mode_only_update(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:FF",
+                friendly_name="rgb_bulb_3",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/rgb_bulb_3", _encode({"color_mode": "color_temp"})
+    )
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:FF", session)
+    assert device.color_mode == "color_temp"
+    assert device.hue is None
+    assert device.saturation is None
+
+
+def test_consume_telemetry_non_dict_color_field_is_ignored(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:AC",
+                friendly_name="weird_bulb",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry("zigbee2mqtt/weird_bulb", _encode({"color": "red"}))
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:AC", session)
+    assert device.hue is None
+    assert device.saturation is None

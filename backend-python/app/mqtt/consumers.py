@@ -75,10 +75,21 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
 
     brightness = _as_optional_int(parsed.get("brightness"))
     color_temp = _as_optional_int(parsed.get("color_temp"))
-    if identity is not None and (brightness is not None or color_temp is not None):
+    color = parsed.get("color") if isinstance(parsed.get("color"), dict) else None
+    hue = _as_optional_int(color.get("hue")) if color else None
+    saturation = _as_optional_int(color.get("saturation")) if color else None
+    color_mode = parsed.get("color_mode") if isinstance(parsed.get("color_mode"), str) else None
+    if identity is not None and any(
+        v is not None for v in (brightness, color_temp, hue, saturation, color_mode)
+    ):
         try:
             device_service.update_light_state(
-                identity.ieee_address, brightness=brightness, color_temp=color_temp
+                identity.ieee_address,
+                brightness=brightness,
+                color_temp=color_temp,
+                hue=hue,
+                saturation=saturation,
+                color_mode=color_mode,
             )
         except Exception as e:
             log.error("Failed to update light state for %s: %s", device_name, e)

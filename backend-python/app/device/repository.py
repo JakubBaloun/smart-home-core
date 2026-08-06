@@ -102,13 +102,27 @@ class DeviceRepository:
         return result.rowcount
 
     def update_light_state_by_ieee(
-        self, ieee_address: str, *, brightness: int | None = None, color_temp: int | None = None, session: Session,
+        self,
+        ieee_address: str,
+        *,
+        brightness: int | None = None,
+        color_temp: int | None = None,
+        hue: int | None = None,
+        saturation: int | None = None,
+        color_mode: str | None = None,
+        session: Session,
     ) -> int:
         values: dict = {"updated_at": datetime.now(timezone.utc)}
         if brightness is not None:
             values["brightness"] = brightness
         if color_temp is not None:
             values["color_temp"] = color_temp
+        if hue is not None:
+            values["hue"] = hue
+        if saturation is not None:
+            values["saturation"] = saturation
+        if color_mode is not None:
+            values["color_mode"] = color_mode
         if len(values) == 1:
             return 0
         result = session.execute(update(Device).where(Device.ieee_address == ieee_address).values(**values))
