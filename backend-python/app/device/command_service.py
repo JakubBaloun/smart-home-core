@@ -19,6 +19,9 @@ class DeviceCommandService:
     def set_color_temp(self, friendly_name: str, color_temp: int) -> None:
         self._send(friendly_name, {"color_temp": color_temp})
 
+    def set_color(self, friendly_name: str, hue: int, saturation: int) -> None:
+        self._send(friendly_name, {"color": {"hue": hue, "saturation": saturation}})
+
     def send_raw_command(self, friendly_name: str, payload: dict[str, Any]) -> None:
         self._send(friendly_name, payload)
 
