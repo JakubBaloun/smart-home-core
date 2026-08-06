@@ -19,6 +19,7 @@ class DeviceIdentity:
     ieee_address: str
     friendly_name: str
     aliases: list[str] = field(default_factory=list)
+    type: str = ""
 
     @property
     def telemetry_keys(self) -> list[str]:

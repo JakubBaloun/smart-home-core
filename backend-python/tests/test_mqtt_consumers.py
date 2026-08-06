@@ -138,12 +138,12 @@ def test_consume_telemetry_no_known_fields_skipped(written):
 def test_consume_telemetry_mixed_payload_filters_unknown_fields(written):
     consumers.consume_telemetry(
         "zigbee2mqtt/living_room",
-        _encode({"temperature": 22.5, "update_available": False, "state": "ON"}),
+        _encode({"temperature": 22.5, "update_available": False}),
     )
     assert written == [("living_room", "sensor_data", {"temperature": 22.5})]
 
 
-def test_consume_telemetry_writes_state_to_postgres_not_influx(written):
+def test_consume_telemetry_writes_light_state_to_influx_as_boolean(written):
     with transaction() as session:
         device_repository.save(
             Device(
@@ -160,12 +160,76 @@ def test_consume_telemetry_writes_state_to_postgres_not_influx(written):
         _encode({"temperature": 22.5, "state": "ON"}),
     )
 
-    # state never reaches InfluxDB
-    assert written == [("00:11:22:33:44:55:66:88", "sensor_data", {"temperature": 22.5})]
+    assert written == [
+        ("00:11:22:33:44:55:66:88", "sensor_data", {"temperature": 22.5, "state": True}),
+    ]
 
     with read_session() as session:
         device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:88", session)
     assert device.state == "ON"
+
+
+def test_consume_telemetry_switch_state_only_payload_writes_boolean_influx(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:99",
+                friendly_name="hallway_switch",
+                type=DeviceType.SWITCH.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry("zigbee2mqtt/hallway_switch", _encode({"state": "OFF"}))
+
+    assert written == [("00:11:22:33:44:55:66:99", "sensor_data", {"state": False})]
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:99", session)
+    assert device.state == "OFF"
+
+
+def test_consume_telemetry_sensor_state_string_is_not_written_to_influx(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:EE",
+                friendly_name="motion_sensor",
+                type=DeviceType.SENSOR.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/motion_sensor",
+        _encode({"temperature": 21.0, "state": "ON"}),
+    )
+
+    assert written == [("00:11:22:33:44:55:66:EE", "sensor_data", {"temperature": 21.0})]
+
+
+def test_consume_telemetry_state_for_unknown_device_does_not_write_state_field(written):
+    consumers.consume_telemetry("zigbee2mqtt/ghost", _encode({"state": "ON"}))
+    assert written == []
+
+
+def test_consume_telemetry_state_unknown_string_value_is_not_written_to_influx(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:F0",
+                friendly_name="odd_light",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry("zigbee2mqtt/odd_light", _encode({"state": "TOGGLE"}))
+
+    assert written == []
 
 
 def test_consume_telemetry_writes_brightness_and_color_temp_to_postgres_not_influx(written):
@@ -259,32 +323,6 @@ def test_consume_telemetry_boolean_brightness_is_rejected(written):
 
 def test_consume_telemetry_brightness_for_unknown_device_does_not_raise(written):
     consumers.consume_telemetry("zigbee2mqtt/ghost", _encode({"brightness": 180, "color_temp": 300}))
-    assert written == []
-
-
-def test_consume_telemetry_state_only_payload_updates_device_without_influx_write(written):
-    with transaction() as session:
-        device_repository.save(
-            Device(
-                ieee_address="00:11:22:33:44:55:66:99",
-                friendly_name="hallway_switch",
-                type=DeviceType.SWITCH.value,
-                available=True,
-            ),
-            session,
-        )
-
-    consumers.consume_telemetry("zigbee2mqtt/hallway_switch", _encode({"state": "OFF"}))
-
-    assert written == []
-
-    with read_session() as session:
-        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:99", session)
-    assert device.state == "OFF"
-
-
-def test_consume_telemetry_state_for_unknown_device_does_not_raise(written):
-    consumers.consume_telemetry("zigbee2mqtt/ghost", _encode({"state": "ON"}))
     assert written == []
 
 

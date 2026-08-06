@@ -170,6 +170,7 @@ class DeviceService:
             ieee_address=device.ieee_address,
             friendly_name=device.friendly_name,
             aliases=device_repository.list_aliases(device.ieee_address, session),
+            type=device.type,
         )
 
     def _remember_name(self, ieee_address: str, name: str | None, session: Session) -> None:

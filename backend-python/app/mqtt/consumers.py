@@ -25,6 +25,16 @@ AVAILABILITY_SUFFIX = "/availability"
 # the raw name. Tracked only to keep the warning to once per name.
 _unregistered_names: set[str] = set()
 
+_STATE_HISTORY_TYPES: frozenset[str] = frozenset({"LIGHT", "SWITCH", "PLUG"})
+
+
+def _state_to_bool(value: Any) -> bool | None:
+    if value == "ON":
+        return True
+    if value == "OFF":
+        return False
+    return None
+
 
 def consume_devices(topic: str, payload: bytes) -> None:
     log.info("Received Z2M device discovery payload, beginning sync process")
@@ -94,7 +104,22 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
         except Exception as e:
             log.error("Failed to update light state for %s: %s", device_name, e)
 
-    fields = {k: v for k, v in parsed.items() if k in KNOWN_FIELDS}
+    # Convert "ON"/"OFF" to a boolean the telemetry pipeline will keep as-is.
+    # normalize_fields() rejects non-numeric/non-boolean values, so the raw
+    # string would otherwise be silently dropped. Only actuator types have
+    # meaningful on/off state; a sensor's "state" (e.g. motion "occupied")
+    # is a different concept and stays out of InfluxDB.
+    fields_source: dict[str, Any] = dict(parsed)
+    if identity is not None and identity.type in _STATE_HISTORY_TYPES:
+        boolean_state = _state_to_bool(state)
+        if boolean_state is not None:
+            fields_source["state"] = boolean_state
+        else:
+            fields_source.pop("state", None)
+    else:
+        fields_source.pop("state", None)
+
+    fields = {k: v for k, v in fields_source.items() if k in KNOWN_FIELDS}
     if not fields:
         log.debug("No known telemetry fields in message from %s, skipping", device_name)
         return
