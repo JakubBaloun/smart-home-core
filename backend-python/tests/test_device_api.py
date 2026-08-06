@@ -268,3 +268,65 @@ def test_get_device_by_id_derives_supports_color_from_exposes(client):
     assert body["colorMode"] == "hs"
     assert body["supportsColor"] is True
     assert "exposes" not in body
+
+
+def test_set_color_returns_202(client, seeded_device_id, published):
+    response = client.post(
+        f"/api/devices/{seeded_device_id}/command",
+        json={"command": "setColor", "payload": {"hue": 200, "saturation": 80}},
+    )
+    assert response.status_code == 202
+    assert published == [
+        (
+            "zigbee2mqtt/Living Room Sensor/set",
+            b'{"color":{"hue":200,"saturation":80}}',
+        )
+    ]
+
+
+def test_set_color_missing_hue_returns_400(client, seeded_device_id, published):
+    response = client.post(
+        f"/api/devices/{seeded_device_id}/command",
+        json={"command": "setColor", "payload": {"saturation": 80}},
+    )
+    assert response.status_code == 400
+    body = response.json()
+    assert body["title"] == "Bad Request"
+    assert "hue" in body["detail"]
+    assert published == []
+
+
+def test_set_color_missing_saturation_returns_400(client, seeded_device_id, published):
+    response = client.post(
+        f"/api/devices/{seeded_device_id}/command",
+        json={"command": "setColor", "payload": {"hue": 200}},
+    )
+    assert response.status_code == 400
+    assert "saturation" in response.json()["detail"]
+
+
+def test_set_color_hue_out_of_range_returns_400(client, seeded_device_id, published):
+    response = client.post(
+        f"/api/devices/{seeded_device_id}/command",
+        json={"command": "setColor", "payload": {"hue": 400, "saturation": 50}},
+    )
+    assert response.status_code == 400
+    assert "hue" in response.json()["detail"]
+    assert published == []
+
+
+def test_set_color_negative_hue_returns_400(client, seeded_device_id, published):
+    response = client.post(
+        f"/api/devices/{seeded_device_id}/command",
+        json={"command": "setColor", "payload": {"hue": -1, "saturation": 50}},
+    )
+    assert response.status_code == 400
+
+
+def test_set_color_saturation_out_of_range_returns_400(client, seeded_device_id, published):
+    response = client.post(
+        f"/api/devices/{seeded_device_id}/command",
+        json={"command": "setColor", "payload": {"hue": 200, "saturation": 101}},
+    )
+    assert response.status_code == 400
+    assert "saturation" in response.json()["detail"]

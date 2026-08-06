@@ -101,6 +101,18 @@ def _route_command(friendly_name: str, request: DeviceCommandRequest) -> None:
     elif request.command == "setColorTemp":
         _require_field(payload, "color_temp")
         device_command_service.set_color_temp(friendly_name, _as_int(payload["color_temp"]))
+    elif request.command == "setColor":
+        _require_field(payload, "hue")
+        _require_field(payload, "saturation")
+        hue = _as_int(payload["hue"])
+        saturation = _as_int(payload["saturation"])
+        if hue < 0 or hue > 360:
+            raise BadRequestError(f"'hue' must be between 0 and 360 (got {hue})")
+        if saturation < 0 or saturation > 100:
+            raise BadRequestError(
+                f"'saturation' must be between 0 and 100 (got {saturation})"
+            )
+        device_command_service.set_color(friendly_name, hue, saturation)
     elif request.command == "raw":
         if payload is None:
             raise BadRequestError("payload is required for 'raw' command")
