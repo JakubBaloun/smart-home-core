@@ -15,7 +15,7 @@ import type { DeviceType, UpdateDeviceRequest } from '../types/device'
 import type { TimeRange } from '../types/telemetry'
 
 const REFRESH_INTERVAL_MS = 15_000
-const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '7d']
+const TIME_RANGES: TimeRange[] = ['1h', '6h', '24h', '7d', '30d']
 const DEVICE_TYPES: DeviceType[] = ['LIGHT', 'SENSOR', 'SWITCH', 'PLUG', 'OTHER']
 
 export function DeviceDetailPage() {

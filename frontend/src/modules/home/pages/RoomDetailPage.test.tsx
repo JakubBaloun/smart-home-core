@@ -101,4 +101,27 @@ describe('RoomDetailPage', () => {
     await waitFor(() => expect(screen.getByText('Zavřeno')).toBeInTheDocument())
     expect(screen.getByText('Vypnuto')).toBeInTheDocument()
   })
+
+  it('renders a 30d button in the range picker', async () => {
+    vi.mocked(fetch).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url === DEVICES_PATH) {
+        return Promise.resolve(
+          jsonResponse([
+            device({ id: 1, ieeeAddress: '0xe456acfffe5dc028', friendlyName: 'Office temp', type: 'SENSOR' }),
+          ]),
+        )
+      }
+      if (url === '/api/telemetry/0xe456acfffe5dc028/latest') {
+        return Promise.resolve(
+          jsonResponse({ deviceName: 'Office temp', values: { temperature: 21.5 }, lastUpdated: '2026-08-05T10:00:00Z' }),
+        )
+      }
+      return Promise.resolve(new Response('not found', { status: 404 }))
+    })
+
+    renderRoom('office')
+
+    expect(await screen.findByRole('button', { name: '30d' })).toBeInTheDocument()
+  })
 })
