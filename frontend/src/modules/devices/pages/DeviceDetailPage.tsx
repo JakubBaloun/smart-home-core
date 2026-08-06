@@ -9,6 +9,7 @@ import { deleteDevice, getDevice, sendCommand, updateDevice } from '../api/devic
 import { getLatestTelemetry } from '../api/telemetry'
 import { ContactTimelineCard } from '../components/ContactTimelineCard'
 import { LightControls } from '../components/LightControls'
+import { StateTimelineCard } from '../components/StateTimelineCard'
 import { TelemetryFieldChart } from '../components/TelemetryFieldChart'
 import { sortFieldsForDisplay } from '../lib/fieldOrder'
 import type { DeviceType, UpdateDeviceRequest } from '../types/device'
@@ -46,7 +47,8 @@ export function DeviceDetailPage() {
 
   const allFields = latest ? Object.keys(latest.values) : []
   const hasContact = allFields.includes('contact')
-  const chartFields = sortFieldsForDisplay(allFields.filter((f) => f !== 'contact'))
+  const hasState = allFields.includes('state')
+  const chartFields = sortFieldsForDisplay(allFields.filter((f) => f !== 'contact' && f !== 'state'))
 
   const handleSetState = async (state: 'ON' | 'OFF') => {
     if (!device) return
@@ -209,7 +211,7 @@ export function DeviceDetailPage() {
         </div>
       )}
 
-      {(hasContact || chartFields.length > 0) && (
+      {(hasContact || hasState || chartFields.length > 0) && (
         <div className="mt-8">
           <div className="mb-4 inline-flex rounded-xl border border-line bg-surface-raised p-1">
             {TIME_RANGES.map((r) => (
@@ -232,6 +234,16 @@ export function DeviceDetailPage() {
                 deviceKey={device.ieeeAddress}
                 range={range}
                 currentValue={latest?.values.contact}
+              />
+            </div>
+          )}
+
+          {hasState && (
+            <div className="mb-6">
+              <StateTimelineCard
+                deviceKey={device.ieeeAddress}
+                range={range}
+                currentValue={latest?.values.state}
               />
             </div>
           )}
