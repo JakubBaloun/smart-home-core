@@ -57,7 +57,7 @@ export function RoomDetailPage() {
                   key={r}
                   type="button"
                   onClick={() => setRange(r)}
-                  className={`min-h-9 rounded-full px-4 font-mono text-sm transition ${
+                  className={`min-h-11 rounded-full px-4 font-mono text-sm transition ${
                     range === r ? 'bg-accent text-accent-ink' : 'text-ink-muted hover:text-ink'
                   }`}
                 >

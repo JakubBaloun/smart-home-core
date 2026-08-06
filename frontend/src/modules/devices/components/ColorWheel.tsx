@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react'
 
 const SIZE = 200
 const RADIUS = SIZE / 2
@@ -100,6 +100,34 @@ export function ColorWheel({
     onCommit(next.hue, next.saturation)
   }
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return
+    const step = e.shiftKey ? 15 : 5
+    let nextHue = localHue
+    let nextSaturation = localSaturation
+    switch (e.key) {
+      case 'ArrowLeft':
+        nextHue = (localHue - step + 360) % 360
+        break
+      case 'ArrowRight':
+        nextHue = (localHue + step) % 360
+        break
+      case 'ArrowUp':
+        nextSaturation = Math.min(100, localSaturation + step)
+        break
+      case 'ArrowDown':
+        nextSaturation = Math.max(0, localSaturation - step)
+        break
+      default:
+        return
+    }
+    e.preventDefault()
+    setLocalHue(nextHue)
+    setLocalSaturation(nextSaturation)
+    onChange?.(nextHue, nextSaturation)
+    onCommit(nextHue, nextSaturation)
+  }
+
   const thumb = polarToCartesian(localHue, localSaturation, RADIUS)
   const wheelStyle: CSSProperties = {
     width: SIZE,
@@ -142,12 +170,15 @@ export function ColorWheel({
       aria-valuemin={0}
       aria-valuemax={360}
       aria-valuenow={localHue}
+      aria-valuetext={`odstín ${localHue}°, sytost ${localSaturation}%`}
       aria-disabled={disabled ? 'true' : undefined}
+      tabIndex={disabled ? -1 : 0}
       style={wheelStyle}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onKeyDown={handleKeyDown}
     >
       <div style={thumbStyle} />
     </div>

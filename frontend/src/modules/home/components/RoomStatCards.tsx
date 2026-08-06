@@ -24,7 +24,10 @@ interface StatCardShellProps {
 function StatCardShell({ device, icon: Icon, primary, secondary, children }: StatCardShellProps) {
   return (
     <section className="flex min-w-[220px] flex-1 flex-col rounded-2xl border border-line bg-surface-raised p-4">
-      <Link to={`/device/${device.id}`} className="flex items-center gap-2 text-ink-muted hover:text-accent">
+      <Link
+        to={`/device/${device.id}`}
+        className="-m-2 flex min-h-11 items-center gap-2 p-2 text-ink-muted hover:text-accent"
+      >
         <Icon className="size-4 shrink-0" />
         <h3 className="truncate text-sm">{device.friendlyName}</h3>
       </Link>

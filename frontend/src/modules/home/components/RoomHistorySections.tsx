@@ -51,8 +51,10 @@ export function RoomHistorySections({ devices, range }: { devices: Device[]; ran
         sections.push({ key: `${device.id}-contact`, kind: 'contact', device, latest })
       }
     }
-    if (device.type === 'LIGHT') {
-      sections.push({ key: `${device.id}-state`, kind: 'state', device, latest })
+    if (device.type === 'LIGHT' || device.type === 'SWITCH' || device.type === 'PLUG') {
+      if (latest && typeof latest.values?.state === 'number') {
+        sections.push({ key: `${device.id}-state`, kind: 'state', device, latest })
+      }
     }
   })
 
@@ -82,7 +84,7 @@ export function RoomHistorySections({ devices, range }: { devices: Device[]; ran
             <StateTimelineCard
               deviceKey={section.device.ieeeAddress}
               range={range}
-              currentValue={section.device.state === 'ON' ? 1 : section.device.state === 'OFF' ? 0 : undefined}
+              currentValue={section.latest?.values.state}
             />
           )}
         </section>

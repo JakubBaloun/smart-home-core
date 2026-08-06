@@ -41,6 +41,9 @@ describe('RoomHistorySections', () => {
       if (url.includes('/api/telemetry/0xbbb/latest')) {
         return Promise.resolve(jsonResponse({ deviceName: 'Door', values: { contact: 1 }, lastUpdated: null }))
       }
+      if (url.includes('/api/telemetry/0xccc/latest')) {
+        return Promise.resolve(jsonResponse({ deviceName: 'Lamp', values: { state: 1 }, lastUpdated: null }))
+      }
       return Promise.resolve(jsonResponse({ deviceName: 'x', field: 'x', points: [] }))
     })
 
@@ -86,5 +89,26 @@ describe('RoomHistorySections', () => {
     await waitFor(() => expect(screen.getAllByRole('heading', { level: 3 }).length).toBeGreaterThanOrEqual(1))
     expect(screen.queryByText(/vlhkost/)).toBeNull()
     expect(screen.queryByText(/kontakt/)).toBeNull()
+  })
+
+  it('omits the state section for a light/switch/plug with no state telemetry yet', async () => {
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(jsonResponse({ deviceName: 'x', field: 'x', points: [] })),
+    )
+
+    render(
+      <RoomHistorySections
+        devices={[
+          device({ id: 1, ieeeAddress: '0xaaa', friendlyName: 'New lamp', type: 'LIGHT' }),
+          device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'New switch', type: 'SWITCH' }),
+          device({ id: 3, ieeeAddress: '0xccc', friendlyName: 'New plug', type: 'PLUG' }),
+        ]}
+        range="24h"
+      />,
+    )
+
+    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalled())
+    expect(screen.queryByRole('heading', { level: 3 })).toBeNull()
+    expect(screen.queryByText(/stav/)).toBeNull()
   })
 })
