@@ -308,6 +308,13 @@ def test_consume_telemetry_all_known_fields(written):
     assert written[0][2] == payload
 
 
+def test_known_fields_includes_state():
+    from app.telemetry.fields import KNOWN_FIELDS, KNOWN_FIELDS_ORDERED
+
+    assert "state" in KNOWN_FIELDS
+    assert "state" in KNOWN_FIELDS_ORDERED
+
+
 def test_consume_availability_updates_device(written):
     with transaction() as session:
         device_repository.save(

@@ -2,7 +2,7 @@
 package here so the REST layer does not have to import the MQTT layer."""
 
 KNOWN_FIELDS: frozenset[str] = frozenset(
-    {"temperature", "humidity", "battery", "power", "voltage", "energy", "linkquality", "contact"}
+    {"temperature", "humidity", "battery", "power", "voltage", "energy", "linkquality", "contact", "state"}
 )
 
 # Java's Set.of has an unspecified (per-JVM randomized) iteration order, so the
@@ -16,4 +16,5 @@ KNOWN_FIELDS_ORDERED: tuple[str, ...] = (
     "energy",
     "linkquality",
     "contact",
+    "state",
 )
