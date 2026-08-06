@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 from sqlalchemy import BigInteger, Boolean, DateTime, SmallInteger, String
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -35,6 +36,9 @@ class Device(Base):
     state: Mapped[str | None] = mapped_column(String(10))
     brightness: Mapped[int | None] = mapped_column(SmallInteger)
     color_temp: Mapped[int | None] = mapped_column(SmallInteger)
+    exposes: Mapped[list | dict | None] = mapped_column(JSONB)
+    hue: Mapped[int | None] = mapped_column(SmallInteger)
+    saturation: Mapped[int | None] = mapped_column(SmallInteger)
 
 
 class DeviceAlias(Base):

@@ -109,3 +109,42 @@ def test_command_service_publishes_compact_json(published):
     assert json.loads(published[3][1]) == {"effect": "blink"}
     assert published[0][2] == 1
     assert published[0][3] is False
+
+
+def test_save_and_load_exposes_hue_saturation_round_trip():
+    exposes = [
+        {
+            "type": "light",
+            "features": [
+                {"name": "brightness", "type": "numeric"},
+                {"name": "color_temp", "type": "numeric", "value_min": 153, "value_max": 500},
+                {
+                    "type": "composite",
+                    "name": "color_hs",
+                    "features": [
+                        {"name": "hue", "type": "numeric"},
+                        {"name": "saturation", "type": "numeric"},
+                    ],
+                },
+            ],
+        }
+    ]
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:AB",
+                friendly_name="rgb_bulb",
+                type=DeviceType.LIGHT.value,
+                available=True,
+                exposes=exposes,
+                hue=200,
+                saturation=80,
+            ),
+            session,
+        )
+
+    with read_session() as session:
+        loaded = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:AB", session)
+    assert loaded.hue == 200
+    assert loaded.saturation == 80
+    assert loaded.exposes == exposes
