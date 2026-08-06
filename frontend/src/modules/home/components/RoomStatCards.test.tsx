@@ -1,8 +1,13 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { sendCommand } from '@/modules/devices/api/devices'
 import type { Device } from '@/modules/devices/types/device'
 import { RoomStatCards } from './RoomStatCards'
+
+vi.mock('@/modules/devices/api/devices', () => ({
+  sendCommand: vi.fn(),
+}))
 
 function device(overrides: Partial<Device> = {}): Device {
   return {
@@ -30,6 +35,7 @@ function jsonResponse(body: unknown) {
 describe('RoomStatCards', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
+    vi.mocked(sendCommand).mockClear()
   })
   afterEach(() => vi.unstubAllGlobals())
 
@@ -47,7 +53,7 @@ describe('RoomStatCards', () => {
 
     render(
       <MemoryRouter>
-        <RoomStatCards devices={[device()]} range="1h" />
+        <RoomStatCards devices={[device()]} range="1h" onRefresh={vi.fn()} />
       </MemoryRouter>,
     )
 
@@ -75,6 +81,7 @@ describe('RoomStatCards', () => {
             device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'B' }),
           ]}
           range="1h"
+          onRefresh={vi.fn()}
         />
       </MemoryRouter>,
     )
@@ -94,7 +101,7 @@ describe('RoomStatCards', () => {
 
     render(
       <MemoryRouter>
-        <RoomStatCards devices={[device({ friendlyName: 'Dveře' })]} range="24h" />
+        <RoomStatCards devices={[device({ friendlyName: 'Dveře' })]} range="24h" onRefresh={vi.fn()} />
       </MemoryRouter>,
     )
 
@@ -107,6 +114,7 @@ describe('RoomStatCards', () => {
         <RoomStatCards
           devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'ON', brightness: 127 })]}
           range="24h"
+          onRefresh={vi.fn()}
         />
       </MemoryRouter>,
     )
@@ -121,11 +129,32 @@ describe('RoomStatCards', () => {
         <RoomStatCards
           devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'OFF', brightness: 200 })]}
           range="24h"
+          onRefresh={vi.fn()}
         />
       </MemoryRouter>,
     )
 
     expect(await screen.findByText('Vypnuto')).toBeInTheDocument()
     expect(screen.queryByText('%')).toBeNull()
+  })
+
+  it('sends setState ON when the toggle is clicked on an OFF light', async () => {
+    vi.mocked(sendCommand).mockResolvedValue(undefined)
+    const onRefresh = vi.fn()
+
+    render(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'OFF' })]}
+          range="24h"
+          onRefresh={onRefresh}
+        />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(await screen.findByRole('switch'))
+
+    expect(sendCommand).toHaveBeenCalledWith(2, { command: 'setState', payload: { state: 'ON' } })
+    await waitFor(() => expect(onRefresh).toHaveBeenCalled())
   })
 })

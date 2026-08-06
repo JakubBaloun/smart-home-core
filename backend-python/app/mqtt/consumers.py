@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.common.events import event_bus
+from app.device.color import xy_to_hue_saturation
 from app.device.schemas import Z2MDevicePayload
 from app.device.service import device_service
 from app.mqtt.bridge_state import bridge_state_holder
@@ -52,6 +53,10 @@ def _as_optional_int(value: Any) -> int | None:
     return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
+def _as_optional_float(value: Any) -> float | None:
+    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
 def consume_telemetry(topic: str, payload: bytes) -> None:
     log.debug("TelemetryConsumer received message on topic: %s", topic)
 
@@ -88,6 +93,13 @@ def consume_telemetry(topic: str, payload: bytes) -> None:
     color = parsed.get("color") if isinstance(parsed.get("color"), dict) else None
     hue = _as_optional_int(color.get("hue")) if color else None
     saturation = _as_optional_int(color.get("saturation")) if color else None
+    if hue is None and saturation is None and color:
+        # Xy-only bulbs (e.g. Tuya TS0505B) never report hue/saturation, only
+        # x/y chromaticity — see app.device.color for why we convert here.
+        x = _as_optional_float(color.get("x"))
+        y = _as_optional_float(color.get("y"))
+        if x is not None and y is not None:
+            hue, saturation = xy_to_hue_saturation(x, y)
     color_mode = parsed.get("color_mode") if isinstance(parsed.get("color_mode"), str) else None
     if identity is not None and any(
         v is not None for v in (brightness, color_temp, hue, saturation, color_mode)

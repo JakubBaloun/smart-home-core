@@ -17,7 +17,7 @@ export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>()
   const room = rooms.find((r) => r.id === id)
   const [range, setRange] = useState<TimeRange>('24h')
-  const { data: readings, error, loading } = usePolling(getDeviceReadings, REFRESH_INTERVAL_MS)
+  const { data: readings, error, loading, refresh } = usePolling(getDeviceReadings, REFRESH_INTERVAL_MS)
 
   if (!room) {
     return (
@@ -66,7 +66,7 @@ export function RoomDetailPage() {
               ))}
             </div>
 
-            <RoomStatCards devices={roomDevices} range={range} />
+            <RoomStatCards devices={roomDevices} range={range} onRefresh={refresh} />
             <RoomHistorySections devices={roomDevices} range={range} />
           </div>
         </>

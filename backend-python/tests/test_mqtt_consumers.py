@@ -435,6 +435,53 @@ def test_consume_telemetry_writes_color_hue_saturation_and_mode_to_postgres(writ
     assert device.color_mode == "hs"
 
 
+def test_consume_telemetry_converts_xy_color_to_hue_saturation_for_xy_only_bulbs(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:ED",
+                friendly_name="xy_bulb",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/xy_bulb",
+        _encode({"color": {"x": 0.7006, "y": 0.2993}, "color_mode": "xy"}),
+    )
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:ED", session)
+    assert device.hue == 0
+    assert device.saturation == 100
+    assert device.color_mode == "xy"
+
+
+def test_consume_telemetry_prefers_hue_saturation_over_xy_when_both_present(written):
+    with transaction() as session:
+        device_repository.save(
+            Device(
+                ieee_address="00:11:22:33:44:55:66:EC",
+                friendly_name="both_bulb",
+                type=DeviceType.LIGHT.value,
+                available=True,
+            ),
+            session,
+        )
+
+    consumers.consume_telemetry(
+        "zigbee2mqtt/both_bulb",
+        _encode({"color": {"hue": 200, "saturation": 80, "x": 0.7006, "y": 0.2993}}),
+    )
+
+    with read_session() as session:
+        device = device_repository.find_by_ieee_address("00:11:22:33:44:55:66:EC", session)
+    assert device.hue == 200
+    assert device.saturation == 80
+
+
 def test_consume_telemetry_partial_color_update_does_not_clobber_brightness_or_temp(written):
     with transaction() as session:
         device_repository.save(

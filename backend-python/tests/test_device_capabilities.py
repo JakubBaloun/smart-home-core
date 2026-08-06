@@ -80,7 +80,7 @@ def test_supports_color_false_for_sensor_without_light_expose():
     assert supports_color(exposes) is False
 
 
-def test_supports_color_ignores_color_xy_only():
+def test_supports_color_true_for_color_xy_only():
     exposes = [
         {
             "type": "light",
@@ -96,4 +96,4 @@ def test_supports_color_ignores_color_xy_only():
             ],
         }
     ]
-    assert supports_color(exposes) is False
+    assert supports_color(exposes) is True

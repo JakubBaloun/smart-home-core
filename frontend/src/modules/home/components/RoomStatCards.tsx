@@ -1,7 +1,9 @@
 import type { ComponentType } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer } from 'recharts'
 import { usePolling } from '@/hooks/usePolling'
+import { sendCommand } from '@/modules/devices/api/devices'
 import { getLatestTelemetry, getTelemetryHistory } from '@/modules/devices/api/telemetry'
 import { buildStateSegments } from '@/modules/devices/lib/contactSegments'
 import { computeDelta, formatSignedDelta, rangeLabel, trendWord } from '@/modules/devices/lib/trend'
@@ -18,23 +20,49 @@ interface StatCardShellProps {
   icon: ComponentType<{ className?: string }>
   primary: string
   secondary?: string
+  headerAction?: React.ReactNode
   children?: React.ReactNode
 }
 
-function StatCardShell({ device, icon: Icon, primary, secondary, children }: StatCardShellProps) {
+function StatCardShell({ device, icon: Icon, primary, secondary, headerAction, children }: StatCardShellProps) {
   return (
     <section className="flex min-w-[220px] flex-1 flex-col rounded-2xl border border-line bg-surface-raised p-4">
-      <Link
-        to={`/device/${device.id}`}
-        className="-m-2 flex min-h-11 items-center gap-2 p-2 text-ink-muted hover:text-accent"
-      >
-        <Icon className="size-4 shrink-0" />
-        <h3 className="truncate text-sm">{device.friendlyName}</h3>
-      </Link>
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          to={`/device/${device.id}`}
+          className="-m-2 flex min-h-11 min-w-0 flex-1 items-center gap-2 p-2 text-ink-muted hover:text-accent"
+        >
+          <Icon className="size-4 shrink-0" />
+          <h3 className="truncate text-sm">{device.friendlyName}</h3>
+        </Link>
+        {headerAction}
+      </div>
       <p className="mt-2 font-mono text-2xl font-semibold text-ink">{primary}</p>
       {secondary && <p className="mt-1 text-xs text-ink-muted">{secondary}</p>}
       {children}
     </section>
+  )
+}
+
+function LightToggle({ checked, onToggle, disabled }: { checked: boolean; onToggle: () => void; disabled: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={checked ? 'Vypnout' : 'Zapnout'}
+      disabled={disabled}
+      onClick={onToggle}
+      className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 disabled:opacity-50"
+    >
+      <span
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${checked ? 'bg-accent' : 'bg-line'}`}
+      >
+        <span
+          className={`inline-block size-4 transform rounded-full bg-white transition ${checked ? 'translate-x-6' : 'translate-x-1'}`}
+        />
+      </span>
+    </button>
   )
 }
 
@@ -115,13 +143,34 @@ function ContactStatCard({ device, contact, range }: { device: Device; contact: 
   )
 }
 
-function LightStatCard({ device }: { device: Device }) {
+function LightStatCard({ device, onRefresh }: { device: Device; onRefresh: () => void | Promise<void> }) {
+  const [sending, setSending] = useState(false)
   const isOn = device.state === 'ON'
   const brightnessPct = device.brightness !== null ? Math.round((device.brightness / 254) * 100) : null
   const secondary = isOn && brightnessPct !== null ? `${brightnessPct} %` : undefined
   const icon = device.type === 'LIGHT' ? IconBulb : device.type === 'PLUG' ? IconPlug : IconSwitch
 
-  return <StatCardShell device={device} icon={icon} primary={isOn ? 'Zapnuto' : 'Vypnuto'} secondary={secondary} />
+  const handleToggle = async () => {
+    setSending(true)
+    try {
+      await sendCommand(device.id, { command: 'setState', payload: { state: isOn ? 'OFF' : 'ON' } })
+      await onRefresh()
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <StatCardShell
+      device={device}
+      icon={icon}
+      primary={isOn ? 'Zapnuto' : 'Vypnuto'}
+      secondary={secondary}
+      headerAction={<LightToggle checked={isOn} onToggle={handleToggle} disabled={sending} />}
+    >
+      <span className={`mt-2 inline-block h-1.5 w-full rounded-full ${isOn ? 'bg-accent' : 'bg-line'}`} aria-hidden />
+    </StatCardShell>
+  )
 }
 
 function SensorCards({ device, range }: { device: Device; range: TimeRange }) {
@@ -145,12 +194,20 @@ function SensorCards({ device, range }: { device: Device; range: TimeRange }) {
   return <>{cards}</>
 }
 
-export function RoomStatCards({ devices, range }: { devices: Device[]; range: TimeRange }) {
+export function RoomStatCards({
+  devices,
+  range,
+  onRefresh,
+}: {
+  devices: Device[]
+  range: TimeRange
+  onRefresh: () => void | Promise<void>
+}) {
   return (
     <div className="flex flex-wrap gap-4">
       {devices.map((device) => {
         if (device.type === 'LIGHT' || device.type === 'SWITCH' || device.type === 'PLUG') {
-          return <LightStatCard key={device.id} device={device} />
+          return <LightStatCard key={device.id} device={device} onRefresh={onRefresh} />
         }
         if (device.type === 'SENSOR') {
           return <SensorCards key={device.id} device={device} range={range} />
