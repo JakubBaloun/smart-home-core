@@ -52,4 +52,65 @@ describe('ContactTimeline', () => {
 
     expect(screen.getByText('No data for "contact" in this range.')).toBeInTheDocument()
   })
+
+  it('renders custom labels and a custom no-data message', () => {
+    render(
+      <ContactTimeline
+        points={[]}
+        fromMs={FROM}
+        toMs={TO}
+        field="state"
+        isActive={(v) => v === 1}
+        activeLabel="zapnuto"
+        inactiveLabel="vypnuto"
+        activeBadgeClass="border-accent/40 bg-accent/10 text-accent"
+        inactiveBadgeClass="border-line bg-surface-sunken text-ink-muted"
+        activeBarClass="bg-accent"
+        inactiveBarClass="bg-surface-sunken"
+      />,
+    )
+
+    expect(screen.getByText('No data for "state" in this range.')).toBeInTheDocument()
+  })
+
+  it('renders the active custom label and bar color when currentValue is active', () => {
+    const points: TelemetryPoint[] = [{ time: '2026-08-01T00:10:00Z', value: 1 }]
+
+    const { container } = render(
+      <ContactTimeline
+        points={points}
+        fromMs={FROM}
+        toMs={TO}
+        currentValue={1}
+        activeLabel="zapnuto"
+        inactiveLabel="vypnuto"
+        activeBarClass="bg-accent"
+        inactiveBarClass="bg-surface-sunken"
+      />,
+    )
+
+    expect(screen.getByText('zapnuto')).toBeInTheDocument()
+    expect(container.querySelector('.bg-accent')).not.toBeNull()
+  })
+
+  it('lists a transition using the custom labels', () => {
+    const points: TelemetryPoint[] = [
+      { time: '2026-08-01T00:10:00Z', value: 1 },
+      { time: '2026-08-01T00:29:00Z', value: 0 },
+      { time: '2026-08-01T00:31:00Z', value: 1 },
+    ]
+
+    render(
+      <ContactTimeline
+        points={points}
+        fromMs={FROM}
+        toMs={TO}
+        currentValue={1}
+        activeLabel="zapnuto"
+        inactiveLabel="vypnuto"
+      />,
+    )
+
+    expect(screen.getByText(/vypnuto \(2 min\)/)).toBeInTheDocument()
+  })
 })
