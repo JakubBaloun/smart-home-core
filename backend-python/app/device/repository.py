@@ -11,7 +11,7 @@ from app.device.models import Device, DeviceAlias, DeviceType
 
 class DeviceRepository:
     def list_all(self, session: Session) -> list[Device]:
-        return list(session.scalars(select(Device)))
+        return list(session.scalars(select(Device).order_by(Device.id)))
 
     def find_by_id(self, device_id: int, session: Session) -> Device | None:
         return session.get(Device, device_id)

@@ -19,6 +19,13 @@ def resolve_model(payload: Z2MDevicePayload) -> str | None:
     return payload.model
 
 
+def resolve_exposes(payload: Z2MDevicePayload) -> list[dict] | None:
+    """Z2M nests exposes under 'definition'; top-level is a legacy fallback."""
+    if payload.definition is not None and payload.definition.exposes is not None:
+        return payload.definition.exposes
+    return payload.exposes
+
+
 def determine_type(payload: Z2MDevicePayload) -> DeviceType:
     if payload.definition is None or payload.definition.description is None:
         return DeviceType.OTHER
@@ -43,7 +50,7 @@ def to_entity(payload: Z2MDevicePayload) -> Device:
         model=resolve_model(payload),
         available=True,
         last_seen=datetime.now(timezone.utc),
-        exposes=payload.exposes,
+        exposes=resolve_exposes(payload),
     )
 
 
@@ -54,5 +61,5 @@ def update_entity_from_payload(payload: Z2MDevicePayload, device: Device) -> Non
     device.type = determine_type(payload).value
     device.vendor = resolve_vendor(payload)
     device.model = resolve_model(payload)
-    device.exposes = payload.exposes
+    device.exposes = resolve_exposes(payload)
     device.updated_at = datetime.now(timezone.utc)

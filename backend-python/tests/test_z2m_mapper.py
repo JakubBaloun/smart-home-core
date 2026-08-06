@@ -105,9 +105,25 @@ RGB_BULB_EXPOSES = [
 ]
 
 
-def test_to_entity_persists_exposes_verbatim():
+def test_to_entity_persists_definition_exposes():
+    """Z2M's real bridge/devices payload nests exposes under 'definition', not top-level."""
+    p = payload("Hue color bulb", definition={"exposes": RGB_BULB_EXPOSES})
+    entity = z2m_mapper.to_entity(p)
+    assert entity.exposes == RGB_BULB_EXPOSES
+
+
+def test_top_level_exposes_used_as_fallback():
     entity = z2m_mapper.to_entity(payload("Hue color bulb", exposes=RGB_BULB_EXPOSES))
     assert entity.exposes == RGB_BULB_EXPOSES
+
+
+def test_definition_exposes_wins_over_top_level():
+    p = payload(
+        "Hue color bulb",
+        exposes=[{"stale": True}],
+        definition={"exposes": RGB_BULB_EXPOSES},
+    )
+    assert z2m_mapper.resolve_exposes(p) == RGB_BULB_EXPOSES
 
 
 def test_update_entity_from_payload_overwrites_exposes():
@@ -119,7 +135,8 @@ def test_update_entity_from_payload_overwrites_exposes():
         exposes=[{"stale": True}],
     )
     z2m_mapper.update_entity_from_payload(
-        payload("Hue color bulb", friendly_name="new", exposes=RGB_BULB_EXPOSES), existing
+        payload("Hue color bulb", friendly_name="new", definition={"exposes": RGB_BULB_EXPOSES}),
+        existing,
     )
     assert existing.exposes == RGB_BULB_EXPOSES
 

@@ -57,6 +57,7 @@ class Z2MDefinition(BaseModel):
     description: str | None = None
     model: str | None = None
     vendor: str | None = None
+    exposes: list[dict] | None = None
 
     model_config = ConfigDict(protected_namespaces=())
 
