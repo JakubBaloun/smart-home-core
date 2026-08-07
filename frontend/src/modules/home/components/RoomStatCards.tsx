@@ -155,17 +155,24 @@ function LightStatCard({ device, onRefresh }: { device: Device; onRefresh: () =>
   const secondary = isOn && brightnessPct !== null ? `${brightnessPct} %` : undefined
   const icon = device.type === 'LIGHT' ? IconBulb : device.type === 'PLUG' ? IconPlug : IconSwitch
 
+  // TEMP DEBUG - remove after diagnosing OFF-toggle flicker
+  console.log(`[toggle-debug] render id=${device.id} state=${device.state} optimisticOn=${optimisticOn} isOn=${isOn}`)
+
   useEffect(() => {
+    console.log(`[toggle-debug] effect fired id=${device.id} device.state=${device.state} -> reset optimisticOn to null`)
     setOptimisticOn(null)
   }, [device.state])
 
   const handleToggle = async () => {
     const nextOn = !isOn
+    console.log(`[toggle-debug] click id=${device.id} nextOn=${nextOn} device.state(before)=${device.state}`)
     setOptimisticOn(nextOn)
     setSending(true)
     try {
       await sendCommand(device.id, { command: 'setState', payload: { state: nextOn ? 'ON' : 'OFF' } })
+      console.log(`[toggle-debug] sendCommand resolved id=${device.id}, calling onRefresh`)
       await onRefresh()
+      console.log(`[toggle-debug] onRefresh resolved id=${device.id}`)
     } finally {
       setSending(false)
     }
