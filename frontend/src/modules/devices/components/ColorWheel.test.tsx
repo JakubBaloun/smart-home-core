@@ -5,24 +5,24 @@ import { ColorWheel, positionToHueSaturation } from './ColorWheel'
 describe('positionToHueSaturation', () => {
   const RADIUS = 100
 
-  it('right of centre maps to hue 0, full saturation at the edge', () => {
-    const { hue, saturation } = positionToHueSaturation(100, 0, RADIUS)
+  it('above centre maps to hue 0, full saturation at the edge', () => {
+    const { hue, saturation } = positionToHueSaturation(0, -100, RADIUS)
     expect(hue).toBe(0)
     expect(saturation).toBe(100)
   })
 
-  it('below centre maps to hue 90', () => {
-    const { hue } = positionToHueSaturation(0, 100, RADIUS)
+  it('right of centre maps to hue 90', () => {
+    const { hue } = positionToHueSaturation(100, 0, RADIUS)
     expect(hue).toBe(90)
   })
 
-  it('left of centre maps to hue 180', () => {
-    const { hue } = positionToHueSaturation(-100, 0, RADIUS)
+  it('below centre maps to hue 180', () => {
+    const { hue } = positionToHueSaturation(0, 100, RADIUS)
     expect(hue).toBe(180)
   })
 
-  it('above centre maps to hue 270', () => {
-    const { hue } = positionToHueSaturation(0, -100, RADIUS)
+  it('left of centre maps to hue 270', () => {
+    const { hue } = positionToHueSaturation(-100, 0, RADIUS)
     expect(hue).toBe(270)
   })
 
@@ -37,14 +37,14 @@ describe('positionToHueSaturation', () => {
   })
 
   it('clamps a pointer outside the circle to saturation 100', () => {
-    const { hue, saturation } = positionToHueSaturation(200, 0, RADIUS)
+    const { hue, saturation } = positionToHueSaturation(0, -200, RADIUS)
     expect(hue).toBe(0)
     expect(saturation).toBe(100)
   })
 
   it('clamps an outside diagonal pointer to saturation 100 while preserving hue', () => {
     const { hue, saturation } = positionToHueSaturation(200, 200, RADIUS)
-    expect(hue).toBe(45)
+    expect(hue).toBe(135)
     expect(saturation).toBe(100)
   })
 
@@ -52,7 +52,7 @@ describe('positionToHueSaturation', () => {
     const { hue } = positionToHueSaturation(1, -1, RADIUS)
     expect(hue).toBeGreaterThanOrEqual(0)
     expect(hue).toBeLessThan(360)
-    expect(hue).toBe(315)
+    expect(hue).toBe(45)
   })
 })
 
