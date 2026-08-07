@@ -157,4 +157,51 @@ describe('RoomStatCards', () => {
     expect(sendCommand).toHaveBeenCalledWith(2, { command: 'setState', payload: { state: 'ON' } })
     await waitFor(() => expect(onRefresh).toHaveBeenCalled())
   })
+
+  it('keeps showing the newer optimistic state when a stale refresh contradicts it', async () => {
+    vi.mocked(sendCommand).mockResolvedValue(undefined)
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'ON' })]}
+          range="24h"
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    // First click: turn OFF.
+    fireEvent.click(await screen.findByRole('switch'))
+    expect(await screen.findByText('Vypnuto')).toBeInTheDocument()
+
+    // Second click: change mind, turn back ON.
+    fireEvent.click(screen.getByRole('switch'))
+    expect(await screen.findByText('Zapnuto')).toBeInTheDocument()
+
+    // A refresh resolves late and reports the *first* click's now-confirmed
+    // result (OFF) — stale relative to the second click's newer intent (ON).
+    rerender(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'OFF' })]}
+          range="24h"
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Zapnuto')).toBeInTheDocument()
+
+    // The real confirmation for the second click finally arrives.
+    rerender(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'ON' })]}
+          range="24h"
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Zapnuto')).toBeInTheDocument()
+  })
 })
