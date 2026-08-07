@@ -53,16 +53,18 @@ function LightToggle({ checked, onToggle, disabled }: { checked: boolean; onTogg
       aria-label={checked ? 'Vypnout' : 'Zapnout'}
       disabled={disabled}
       onClick={onToggle}
-      className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 disabled:opacity-50"
+      className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 disabled:opacity-50 active:scale-95 transition-transform"
     >
       <span
-        className={`relative inline-flex h-6 w-11 items-center rounded-full border transition ${
-          checked ? 'border-accent bg-accent' : 'border-line bg-surface'
+        className={`relative inline-flex h-7 w-12 items-center rounded-full border transition-colors duration-200 ease-out ${
+          checked
+            ? 'border-accent bg-accent shadow-[0_0_10px_-2px_var(--accent)]'
+            : 'border-line bg-surface'
         }`}
       >
         <span
-          className={`inline-block size-4 transform rounded-full transition ${
-            checked ? 'translate-x-6 bg-white' : 'translate-x-1 bg-ink-muted'
+          className={`inline-block size-5 transform rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200 ease-out ${
+            checked ? 'translate-x-6' : 'translate-x-1'
           }`}
         />
       </span>
