@@ -63,7 +63,7 @@ function LightToggle({ checked, onToggle, disabled }: { checked: boolean; onTogg
         }`}
       >
         <span
-          className={`inline-block size-5 transform rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200 ease-out ${
+          className={`inline-block size-5 transform rounded-full bg-ink shadow-[0_1px_3px_rgba(0,0,0,0.3)] transition-transform duration-200 ease-out ${
             checked ? 'translate-x-6' : 'translate-x-1'
           }`}
         />
