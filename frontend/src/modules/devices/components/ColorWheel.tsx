@@ -13,9 +13,10 @@ interface ColorWheelProps {
 
 /**
  * Pure pointer-math: pointer offset from the wheel centre (`dx`, `dy` in
- * pixels, +y downwards) mapped to hue (0-360, 0 = +x axis, growing clockwise
- * because +y is downwards) and saturation (0-100, radial distance from centre
- * clamped to the wheel edge).
+ * pixels, +y downwards) mapped to hue (0-360, 0 = +y axis i.e. straight up,
+ * growing clockwise) and saturation (0-100, radial distance from centre
+ * clamped to the wheel edge). The 0deg-at-top convention matches the wheel's
+ * `conic-gradient(from 0deg, ...)`, which also starts red at the top.
  */
 export function positionToHueSaturation(
   dx: number,
@@ -28,7 +29,7 @@ export function positionToHueSaturation(
   if (distance === 0) {
     return { hue: 0, saturation }
   }
-  let angle = (Math.atan2(dy, dx) * 180) / Math.PI
+  let angle = (Math.atan2(dx, -dy) * 180) / Math.PI
   if (angle < 0) angle += 360
   return { hue: Math.round(angle) % 360, saturation }
 }
@@ -37,8 +38,8 @@ function polarToCartesian(hue: number, saturation: number, radius: number) {
   const distance = (saturation / 100) * radius
   const rad = (hue * Math.PI) / 180
   return {
-    x: radius + Math.cos(rad) * distance,
-    y: radius + Math.sin(rad) * distance,
+    x: radius + Math.sin(rad) * distance,
+    y: radius - Math.cos(rad) * distance,
   }
 }
 
