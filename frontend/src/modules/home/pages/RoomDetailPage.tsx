@@ -48,8 +48,6 @@ export function RoomDetailPage() {
 
       {readings && (
         <>
-          <DeviceGrid readings={roomReadings} variant="list" defaultCollapsed />
-
           <div className="mt-8">
             <div className="mb-4 inline-flex rounded-full border border-line bg-surface-raised p-1">
               {TIME_RANGES.map((r) => (
@@ -68,6 +66,10 @@ export function RoomDetailPage() {
 
             <RoomStatCards devices={roomDevices} range={range} onRefresh={refresh} />
             <RoomHistorySections devices={roomDevices} range={range} />
+          </div>
+
+          <div className="mt-8">
+            <DeviceGrid readings={roomReadings} variant="list" defaultCollapsed />
           </div>
         </>
       )}
