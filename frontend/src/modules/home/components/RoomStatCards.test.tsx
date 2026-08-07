@@ -204,4 +204,71 @@ describe('RoomStatCards', () => {
     )
     expect(screen.getByText('Zapnuto')).toBeInTheDocument()
   })
+
+  it('shows the color/brightness button only for LIGHT devices, not SWITCH or PLUG', async () => {
+    render(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[
+            device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'ON' }),
+            device({ id: 3, ieeeAddress: '0xccc', friendlyName: 'Switch', type: 'SWITCH', state: 'ON' }),
+            device({ id: 4, ieeeAddress: '0xddd', friendlyName: 'Plug', type: 'PLUG', state: 'ON' }),
+          ]}
+          range="24h"
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    await screen.findAllByText('Zapnuto')
+    expect(screen.getAllByLabelText('Nastavit barvu a jas')).toHaveLength(1)
+  })
+
+  it('opens a modal with brightness controls when the palette button is clicked', async () => {
+    render(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[device({ id: 2, ieeeAddress: '0xbbb', friendlyName: 'Lamp', type: 'LIGHT', state: 'ON', brightness: 127 })]}
+          range="24h"
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(await screen.findByLabelText('Nastavit barvu a jas'))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveTextContent('Lamp')
+    expect(screen.getByLabelText('Jas')).toBeInTheDocument()
+  })
+
+  it('gives the state bar an inline color style when the device reports a color', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <RoomStatCards
+          devices={[
+            device({
+              id: 2,
+              ieeeAddress: '0xbbb',
+              friendlyName: 'Lamp',
+              type: 'LIGHT',
+              state: 'ON',
+              colorMode: 'hs',
+              hue: 210,
+              saturation: 80,
+            }),
+          ]}
+          range="24h"
+          onRefresh={vi.fn()}
+        />
+      </MemoryRouter>,
+    )
+
+    await screen.findByText('Zapnuto')
+    const bar = container.querySelector('span[aria-hidden]')
+    expect(bar).toHaveStyle({ background: 'hsl(210 80% 55%)' })
+    expect(bar?.className).not.toContain('bg-accent')
+  })
 })

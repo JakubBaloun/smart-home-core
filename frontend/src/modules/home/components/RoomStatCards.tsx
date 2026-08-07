@@ -5,11 +5,14 @@ import { Line, LineChart, ResponsiveContainer } from 'recharts'
 import { usePolling } from '@/hooks/usePolling'
 import { sendCommand } from '@/modules/devices/api/devices'
 import { getLatestTelemetry, getTelemetryHistory } from '@/modules/devices/api/telemetry'
+import { LightControls } from '@/modules/devices/components/LightControls'
 import { buildStateSegments } from '@/modules/devices/lib/contactSegments'
+import { bulbColor } from '@/modules/devices/lib/bulbColor'
 import { computeDelta, formatSignedDelta, rangeLabel, trendWord } from '@/modules/devices/lib/trend'
 import type { Device } from '@/modules/devices/types/device'
 import type { TelemetryPoint, TimeRange } from '@/modules/devices/types/telemetry'
-import { IconBulb, IconDroplet, IconPlug, IconSensor, IconSwitch, IconThermometer } from '@/ui/icons'
+import { IconBulb, IconDroplet, IconPalette, IconPlug, IconSensor, IconSwitch, IconThermometer } from '@/ui/icons'
+import { Modal } from '@/ui/Modal'
 
 const REFRESH_INTERVAL_MS = 15_000
 
@@ -68,6 +71,19 @@ function LightToggle({ checked, onToggle, disabled }: { checked: boolean; onTogg
           }`}
         />
       </span>
+    </button>
+  )
+}
+
+function LightControlsButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Nastavit barvu a jas"
+      onClick={onClick}
+      className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center p-2 text-ink-muted hover:text-accent active:scale-95 transition-transform"
+    >
+      <IconPalette className="size-5" />
     </button>
   )
 }
@@ -152,10 +168,12 @@ function ContactStatCard({ device, contact, range }: { device: Device; contact: 
 function LightStatCard({ device, onRefresh }: { device: Device; onRefresh: () => void | Promise<void> }) {
   const [sending, setSending] = useState(false)
   const [optimisticOn, setOptimisticOn] = useState<boolean | null>(null)
+  const [controlsOpen, setControlsOpen] = useState(false)
   const isOn = optimisticOn ?? device.state === 'ON'
   const brightnessPct = device.brightness !== null ? Math.round((device.brightness / 254) * 100) : null
   const secondary = isOn && brightnessPct !== null ? `${brightnessPct} %` : undefined
   const icon = device.type === 'LIGHT' ? IconBulb : device.type === 'PLUG' ? IconPlug : IconSwitch
+  const color = isOn ? bulbColor(device) : null
 
   useEffect(() => {
     // onRefresh (and the background poll) can return a snapshot from before
@@ -187,9 +205,23 @@ function LightStatCard({ device, onRefresh }: { device: Device; onRefresh: () =>
       icon={icon}
       primary={isOn ? 'Zapnuto' : 'Vypnuto'}
       secondary={secondary}
-      headerAction={<LightToggle checked={isOn} onToggle={handleToggle} disabled={sending} />}
+      headerAction={
+        <div className="flex items-center gap-1">
+          {device.type === 'LIGHT' && <LightControlsButton onClick={() => setControlsOpen(true)} />}
+          <LightToggle checked={isOn} onToggle={handleToggle} disabled={sending} />
+        </div>
+      }
     >
-      <span className={`mt-2 inline-block h-1.5 w-full rounded-full ${isOn ? 'bg-accent' : 'bg-line'}`} aria-hidden />
+      <span
+        className={`mt-2 inline-block h-1.5 w-full rounded-full ${color ? '' : isOn ? 'bg-accent' : 'bg-line'}`}
+        style={color ? { background: color, boxShadow: `0 0 8px -1px ${color}` } : undefined}
+        aria-hidden
+      />
+      {device.type === 'LIGHT' && (
+        <Modal open={controlsOpen} onClose={() => setControlsOpen(false)} title={device.friendlyName}>
+          <LightControls device={device} />
+        </Modal>
+      )}
     </StatCardShell>
   )
 }
